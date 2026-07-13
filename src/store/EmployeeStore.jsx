@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
-import { SEED_EMPLOYEES } from '../data/seed'
 
 /**
- * Phase-1 store: seeded demo roster + additions, persisted to localStorage.
+ * Phase-1 store: roster persisted to localStorage.
+ * Production starts empty — HR adds real employees via the wizard.
+ * A demo roster is seeded only in local development (dynamic import below),
+ * so no fake data ever ships in the production bundle.
  * Swap the reducer for API calls when the backend lands.
  */
 
@@ -15,19 +17,21 @@ function load() {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch {
-    /* fall through to seed */
+    /* fall through to empty */
   }
-  return SEED_EMPLOYEES
+  return []
 }
 
 function reducer(state, action) {
   switch (action.type) {
+    case 'seed':
+      return action.employees
     case 'add':
       return [...state, action.employee]
     case 'update':
       return state.map((e) => (e.id === action.employee.id ? { ...e, ...action.employee } : e))
     case 'reset':
-      return SEED_EMPLOYEES
+      return []
     default:
       return state
   }
@@ -35,6 +39,18 @@ function reducer(state, action) {
 
 export function EmployeeProvider({ children }) {
   const [employees, dispatch] = useReducer(reducer, null, load)
+
+  // Dev-only: seed the demo roster on a fresh store. This effect runs before
+  // the persist effect below, so it reads "is this a fresh store?" from
+  // localStorage before anything is written. The dynamic import keeps
+  // demoRoster.js (fake names, Aadhaar/PAN/bank) out of the production bundle.
+  useEffect(() => {
+    if (import.meta.env.DEV && localStorage.getItem(STORAGE_KEY) === null) {
+      import('../data/demoRoster.js').then(({ DEMO_EMPLOYEES }) =>
+        dispatch({ type: 'seed', employees: DEMO_EMPLOYEES }),
+      )
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(employees))
@@ -54,7 +70,7 @@ export function EmployeeProvider({ children }) {
       },
       addEmployee: (employee) => dispatch({ type: 'add', employee }),
       updateEmployee: (employee) => dispatch({ type: 'update', employee }),
-      resetDemo: () => dispatch({ type: 'reset' }),
+      resetRoster: () => dispatch({ type: 'reset' }),
     }),
     [employees],
   )

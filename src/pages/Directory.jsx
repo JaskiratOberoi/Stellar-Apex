@@ -10,6 +10,7 @@ import {
   Rows3,
   Search,
   SearchX,
+  UserRoundPlus,
 } from 'lucide-react'
 import { DEPARTMENTS, STATUSES } from '../data/seed'
 import { useEmployees } from '../store/EmployeeStore'
@@ -283,11 +284,27 @@ export default function Directory() {
 
       {filtered.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-hairline shadow-card">
-          <EmptyState
-            icon={SearchX}
-            title="No people match"
-            hint="Try clearing a filter or broadening your search."
-          />
+          {counts.total === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <UserRoundPlus size={28} className="text-ink-faint mb-3" />
+              <p className="font-display font-semibold text-[15px]">No employees yet</p>
+              <p className="text-[13px] text-ink-faint mt-1 max-w-xs">
+                {entity.name} has no people on record. Add your first employee to get started.
+              </p>
+              <button
+                onClick={() => navigate('/people/new')}
+                className="mt-4 inline-flex items-center gap-1.5 h-9 rounded-xl bg-iris hover:bg-iris-deep text-white text-[13px] font-semibold px-4 transition-colors cursor-pointer"
+              >
+                <UserRoundPlus size={15} strokeWidth={2.5} /> Add employee
+              </button>
+            </div>
+          ) : (
+            <EmptyState
+              icon={SearchX}
+              title="No people match"
+              hint="Try clearing a filter or broadening your search."
+            />
+          )}
         </div>
       ) : (
         groups.map(({ key, items }) => (

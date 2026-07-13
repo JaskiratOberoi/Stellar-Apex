@@ -7,6 +7,7 @@ import {
   Menu,
   Plus,
   Search,
+  ShieldCheck,
   Sparkles,
   UsersRound,
   Wallet,
@@ -15,7 +16,6 @@ import {
 import { useState } from 'react'
 import { cx } from '../lib/utils'
 import { useEntity } from '../store/EntityContext'
-import { Avatar } from './ui'
 import { ENTITY_MARK } from './logos'
 import PortalPicker from '../pages/PortalPicker'
 
@@ -105,13 +105,15 @@ function Rail({ onNavigate }) {
         </ul>
       </nav>
 
-      {/* Signed-in user */}
+      {/* Signed-in user — placeholder until auth lands */}
       <div className="p-3 shrink-0">
         <div className="flex items-center gap-2.5 rounded-xl bg-rail-soft px-3 py-2.5">
-          <Avatar name="Meera Krishnan" size={30} />
+          <div className="size-[30px] rounded-full bg-rail grid place-items-center text-rail-text shrink-0">
+            <ShieldCheck size={15} />
+          </div>
           <div className="leading-tight min-w-0">
-            <p className="text-[12.5px] font-semibold text-white truncate">Meera Krishnan</p>
-            <p className="text-[11px] text-rail-text truncate">HR Administrator</p>
+            <p className="text-[12.5px] font-semibold text-white truncate">Administrator</p>
+            <p className="text-[11px] text-rail-text truncate">HR · {entity.name}</p>
           </div>
         </div>
       </div>
