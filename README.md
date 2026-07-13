@@ -9,13 +9,19 @@ data (Aadhaar/PAN/UAN/ESI, bank + IFSC) with privacy-first masking, profile comp
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full feature plan (attendance, shifts,
 payroll, documents).
 
+> **Setting up the backend?** Data is currently browser-local (`localStorage`). To make
+> it shared and multi-user, follow **[docs/BACKEND.md](docs/BACKEND.md)** — a complete,
+> self-contained brief (schema, API contract, entity isolation, DPDP security, Hostinger
+> deploy) you can hand to a Claude Code session on the server.
+
 ## Stack
 
 - Vite + React 19, React Router
 - Tailwind CSS v4 (design tokens in `src/index.css` `@theme`)
 - Framer Motion, Lucide icons
-- Phase 1 persistence: seeded demo data + localStorage (`src/store/EmployeeStore.jsx`) —
-  swap for an API when the backend lands
+- Phase 1 persistence: localStorage (`src/store/EmployeeStore.jsx`) — production ships
+  empty; a demo roster seeds in dev only. Swap for an API when the backend lands
+  (see [docs/BACKEND.md](docs/BACKEND.md))
 
 ## Develop
 
