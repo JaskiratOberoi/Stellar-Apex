@@ -16,6 +16,21 @@ Branches are per-entity (`COMPANIES[x].branches`). Noble (Qugen) has 18 branches
 **Qugen (Delhi)** as head office. **Ares' real branch list is pending** — placeholder
 Head Office + Collection Centre until provided.
 
+## Data & deployment
+
+- **Roster data**: production starts with an empty roster (HR adds real people via
+  the wizard). A demo roster (`src/data/demoRoster.js`) is dynamically imported
+  and seeded only when `import.meta.env.DEV` — so no fake names / Aadhaar / PAN /
+  bank numbers ship in the production bundle. Persisted to localStorage
+  (`stellar-apex:employees:v2`); swap for an API when the backend lands.
+- **Hosting**: `apexhr.stellarinfomatica.com` on Hostinger → `public_html/apexhr`.
+  Hostinger clones a branch and serves it directly (no build step). Deploy the
+  built static output on the **`hostinger-deploy`** branch (never `main`, which is
+  un-built source). `.htaccess` (in `public/`) provides the SPA rewrite so React
+  Router deep links survive refreshes.
+- **Redeploy flow**: on `main` after changes → `npm run build` → copy `dist/` into
+  the `hostinger-deploy` branch via a git worktree → force-push → Redeploy in hPanel.
+
 ## Phase 1 — Employee Master ✅ (in progress)
 
 - [x] Employee directory: table + card views, multi-field search, filters
