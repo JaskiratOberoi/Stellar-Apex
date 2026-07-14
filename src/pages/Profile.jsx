@@ -38,6 +38,7 @@ import {
   SectionCard,
   StatusPill,
 } from '../components/ui'
+import OrgRelations from '../components/OrgRelations'
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: UserRound },
@@ -103,7 +104,7 @@ function ComplianceRow({ label, ok, children }) {
 export default function Profile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { byId, reportsOf } = useEmployees()
+  const { byId } = useEmployees()
   const { entity } = useEntity()
   const [tab, setTab] = useState('overview')
 
@@ -121,8 +122,6 @@ export default function Profile() {
     )
   }
 
-  const manager = e.reportsTo ? byId(e.reportsTo) : null
-  const reports = reportsOf(e.id)
   const comp = completeness(e)
   const isHQ = e.branch === entity.headOffice
 
@@ -300,49 +299,8 @@ export default function Profile() {
               </dl>
             </SectionCard>
 
-            {/* Org context — manager above, reports below */}
-            <SectionCard title="Org context" className="lg:col-span-1">
-              {manager ? (
-                <Link
-                  to={`/people/${manager.id}`}
-                  className="flex items-center gap-3 rounded-xl border border-hairline p-3 hover:border-iris/40 transition-colors"
-                >
-                  <Avatar name={manager.name} size={36} />
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold truncate">{manager.name}</p>
-                    <p className="text-[11.5px] text-ink-faint truncate">
-                      {manager.designation} · Manager
-                    </p>
-                  </div>
-                </Link>
-              ) : (
-                <p className="text-[13px] text-ink-faint">No reporting manager</p>
-              )}
-
-              {reports.length > 0 && (
-                <>
-                  <p className="text-[11.5px] uppercase tracking-[0.1em] text-ink-faint font-semibold mt-4 mb-2">
-                    Direct reports · {reports.length}
-                  </p>
-                  <div className="space-y-1.5">
-                    {reports.map((r) => (
-                      <Link
-                        key={r.id}
-                        to={`/people/${r.id}`}
-                        className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-iris-soft/50 transition-colors"
-                      >
-                        <Avatar name={r.name} size={28} />
-                        <div className="min-w-0">
-                          <p className="text-[12.5px] font-medium truncate">{r.name}</p>
-                          <p className="text-[11px] text-ink-faint truncate">{r.designation}</p>
-                        </div>
-                        <StatusPill status={r.status} className="ml-auto scale-90 origin-right" />
-                      </Link>
-                    ))}
-                  </div>
-                </>
-              )}
-            </SectionCard>
+            {/* Editable reporting relationships (reports-to + manages) */}
+            <OrgRelations employee={e} />
           </>
         )}
 

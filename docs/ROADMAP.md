@@ -40,6 +40,10 @@ Head Office + Collection Centre until provided.
 - [x] Lifecycle states: Probation → Active → Notice Period → Exited
 - [x] Employment timeline (joined / confirmed / notice / exited)
 - [x] Org context on profile: manager + direct reports, click-through
+- [x] **Org chart page** (`/org`): dynamic top-down tree built from `reportsTo`,
+      collapsible nodes, expand/collapse all, per-entity, updates live as people/levels change
+- [x] **Editable reporting** on each profile (Job & Org tab): set "Reports to" and
+      add/remove "Manages" (reportees) — both directions, cycle-safe
 - [x] Masked sensitive fields (Aadhaar, PAN, UAN, ESI, bank account) with
       click-to-reveal + 10s auto re-mask (DPDP-style, greytHR pattern)
 - [x] Profile completeness meter = payroll-readiness (Keka/Zoho pattern)
@@ -84,7 +88,7 @@ letter generation from templates (offer, appointment, confirmation, experience).
 
 ## Later
 
-LIS integration, org chart view, mobile app, performance, dashboard/analytics.
+LIS integration, mobile app, performance, dashboard/analytics.
 
 ## Design system
 

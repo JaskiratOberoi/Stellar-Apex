@@ -5,6 +5,7 @@ import {
   FileText,
   LayoutGrid,
   Menu,
+  Network,
   Plus,
   Search,
   ShieldCheck,
@@ -21,6 +22,7 @@ import PortalPicker from '../pages/PortalPicker'
 
 const NAV = [
   { to: '/people', label: 'People', icon: UsersRound },
+  { to: '/org', label: 'Org chart', icon: Network },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutGrid, soon: true },
   { to: '/attendance', label: 'Attendance', icon: CalendarClock, soon: true },
   { to: '/payroll', label: 'Payroll', icon: Wallet, soon: true },

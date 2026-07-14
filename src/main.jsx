@@ -8,6 +8,7 @@ import AppLayout from './components/AppLayout'
 import Directory from './pages/Directory'
 import Profile from './pages/Profile'
 import AddEmployee from './pages/AddEmployee'
+import OrgChart from './pages/OrgChart'
 
 const router = createBrowserRouter([
   {
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
       { path: '/people', element: <Directory /> },
       { path: '/people/new', element: <AddEmployee /> },
       { path: '/people/:id', element: <Profile /> },
+      { path: '/org', element: <OrgChart /> },
       { path: '*', element: <Navigate to="/people" replace /> },
     ],
   },

@@ -66,3 +66,84 @@ html {
   scrollbar-width: thin;
   scrollbar-color: var(--color-hairline-strong) transparent;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Org chart — top-down tree with CSS connector lines.               */
+/*  Structure: .org-tree > ul > li (node + nested ul of reports).     */
+/* ------------------------------------------------------------------ */
+.org-tree,
+.org-tree ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.org-tree ul {
+  padding-top: 22px;
+  position: relative;
+  justify-content: center;
+}
+.org-tree li {
+  position: relative;
+  padding: 22px 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* connectors: two halves of the horizontal line above each node */
+.org-tree li::before,
+.org-tree li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 22px;
+  border-top: 1.5px solid var(--color-hairline-strong);
+}
+.org-tree li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1.5px solid var(--color-hairline-strong);
+}
+/* a lone child needs only a straight line, no horizontal span */
+.org-tree li:only-child::before,
+.org-tree li:only-child::after {
+  display: none;
+}
+.org-tree li:only-child {
+  padding-top: 22px;
+}
+/* trim the outer corners of the first/last siblings */
+.org-tree li:first-child::before,
+.org-tree li:last-child::after {
+  border: 0 none;
+}
+.org-tree li:last-child::before {
+  border-right: 1.5px solid var(--color-hairline-strong);
+  border-radius: 0 7px 0 0;
+}
+.org-tree li:first-child::after {
+  border-radius: 7px 0 0 0;
+}
+/* vertical line dropping from a parent down to its children row */
+.org-tree ul ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 1.5px solid var(--color-hairline-strong);
+  width: 0;
+  height: 22px;
+}
+.org-tree > ul {
+  padding-top: 0;
+}
+/* root nodes have no manager above them → no connectors */
+.org-tree > ul > li {
+  padding-top: 0;
+}
+.org-tree > ul > li::before,
+.org-tree > ul > li::after {
+  display: none;
+}
