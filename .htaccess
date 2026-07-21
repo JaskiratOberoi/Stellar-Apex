@@ -4,6 +4,8 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
+  # Let the PHP backend under /api handle its own requests (never rewrite to SPA).
+  RewriteRule ^api/ - [L]
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
