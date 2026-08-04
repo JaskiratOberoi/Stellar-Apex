@@ -17,8 +17,10 @@ import {
 import { useState } from 'react'
 import { cx } from '../lib/utils'
 import { useEntity } from '../store/EntityContext'
+import { useAuth } from '../store/AuthContext'
 import { ENTITY_MARK } from './logos'
 import PortalPicker from '../pages/PortalPicker'
+import Login from '../pages/Login'
 
 const NAV = [
   { to: '/people', label: 'People', icon: UsersRound },
@@ -29,15 +31,33 @@ const NAV = [
   { to: '/documents', label: 'Documents', icon: FileText, soon: true },
 ]
 
+const ROLE_LABEL = {
+  super_admin: 'Super Admin',
+  entity_admin: 'Admin',
+  entity_hr: 'HR',
+  viewer: 'Viewer',
+}
+
 function Rail({ onNavigate }) {
-  const { entity, exitPortal } = useEntity()
+  const { entity, exitPortal, canSwitch } = useEntity()
+  const { user } = useAuth()
   const Mark = ENTITY_MARK[entity.hue]
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full overflow-hidden">
+      {/* Aurora glow — decor only */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-24 -left-16 size-64 rounded-full bg-iris/25 blur-3xl"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-16 right-0 size-40 rounded-full bg-aurora/15 blur-3xl"
+      />
+
       {/* Product brand */}
-      <div className="flex items-center gap-2.5 px-5 h-16 shrink-0">
-        <div className="size-8 rounded-lg bg-iris grid place-items-center text-white">
+      <div className="relative flex items-center gap-2.5 px-5 h-16 shrink-0">
+        <div className="size-8 rounded-lg bg-gradient-to-br from-iris to-aurora grid place-items-center text-white shadow-glow">
           <Sparkles size={16} strokeWidth={2.5} />
         </div>
         <div className="leading-tight">
@@ -62,7 +82,7 @@ function Rail({ onNavigate }) {
           <button
             onClick={exitPortal}
             className="p-1.5 rounded-lg text-rail-text hover:text-white hover:bg-rail transition-colors cursor-pointer"
-            title="Switch portal"
+            title={canSwitch ? 'Switch portal' : 'Sign out'}
           >
             <ArrowLeftRight size={13} />
           </button>
@@ -85,9 +105,9 @@ function Rail({ onNavigate }) {
                 }}
                 className={({ isActive }) =>
                   cx(
-                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors',
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all',
                     !soon && isActive
-                      ? 'bg-iris text-white'
+                      ? 'bg-gradient-to-r from-iris to-iris-deep text-white shadow-glow'
                       : soon
                         ? 'text-rail-text/50 cursor-default'
                         : 'text-rail-text hover:bg-rail-soft hover:text-white',
@@ -107,15 +127,15 @@ function Rail({ onNavigate }) {
         </ul>
       </nav>
 
-      {/* Signed-in user — placeholder until auth lands */}
+      {/* Signed-in user */}
       <div className="p-3 shrink-0">
         <div className="flex items-center gap-2.5 rounded-xl bg-rail-soft px-3 py-2.5">
           <div className="size-[30px] rounded-full bg-rail grid place-items-center text-rail-text shrink-0">
             <ShieldCheck size={15} />
           </div>
           <div className="leading-tight min-w-0">
-            <p className="text-[12.5px] font-semibold text-white truncate">Administrator</p>
-            <p className="text-[11px] text-rail-text truncate">HR · {entity.name}</p>
+            <p className="text-[12.5px] font-semibold text-white truncate">{user?.name || 'Administrator'}</p>
+            <p className="text-[11px] text-rail-text truncate">{ROLE_LABEL[user?.role] || 'HR'} · {entity.name}</p>
           </div>
         </div>
       </div>
@@ -125,10 +145,17 @@ function Rail({ onNavigate }) {
 
 export default function AppLayout() {
   const navigate = useNavigate()
+  const { user, ready } = useAuth()
   const { entity } = useEntity()
   const [mobileNav, setMobileNav] = useState(false)
 
-  // No portal chosen → the picker is the only thing that renders.
+  // Restoring the session (validating a stored token) — avoid a flash of login.
+  if (!ready) {
+    return <div className="min-h-dvh grid place-items-center text-ink-faint text-[13px]">Loading…</div>
+  }
+  // Not signed in → the login screen is the only thing that renders.
+  if (!user) return <Login />
+  // Signed in but no entity resolved (super_admin who hasn't picked) → picker.
   if (!entity) return <PortalPicker />
 
   return (
@@ -177,7 +204,7 @@ export default function AppLayout() {
 
           <button
             onClick={() => navigate('/people/new')}
-            className="ml-auto inline-flex items-center gap-1.5 h-9 rounded-xl bg-iris hover:bg-iris-deep text-white text-[13px] font-semibold px-3.5 transition-colors cursor-pointer"
+            className="ml-auto inline-flex items-center gap-1.5 h-9 rounded-xl bg-gradient-to-b from-iris to-iris-deep hover:brightness-110 text-white text-[13px] font-semibold px-3.5 shadow-glow transition-all cursor-pointer"
           >
             <Plus size={15} strokeWidth={2.5} />
             <span className="hidden sm:inline">Add employee</span>

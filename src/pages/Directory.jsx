@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
+  Archive,
   ChevronDown,
+  DoorOpen,
+  Hourglass,
   LayoutGrid,
   Mail,
   MapPin,
@@ -10,7 +13,9 @@ import {
   Rows3,
   Search,
   SearchX,
+  UserCheck,
   UserRoundPlus,
+  UsersRound,
 } from 'lucide-react'
 import { DEPARTMENTS, STATUSES } from '../data/seed'
 import { useEmployees } from '../store/EmployeeStore'
@@ -48,17 +53,36 @@ function FilterSelect({ value, onChange, options, allLabel }) {
 }
 
 /* ---------------- KPI tile ---------------- */
-function Kpi({ label, value, tone, onClick, active }) {
+function Kpi({ label, value, icon: Icon, chip, num, bar, onClick, active }) {
   return (
     <button
       onClick={onClick}
       className={cx(
-        'flex-1 min-w-28 rounded-2xl border bg-surface px-4 py-3 text-left transition-all cursor-pointer',
-        active ? 'border-iris ring-2 ring-iris/15' : 'border-hairline hover:border-hairline-strong',
+        'group relative flex-1 min-w-32 overflow-hidden rounded-2xl border bg-surface px-4 pt-3 pb-3.5 text-left transition-all duration-200 cursor-pointer',
+        active
+          ? 'border-iris/50 shadow-pop -translate-y-0.5 ring-2 ring-iris/15'
+          : 'border-hairline hover:-translate-y-0.5 hover:shadow-pop hover:border-hairline-strong',
       )}
     >
-      <p className="text-[11.5px] font-medium text-ink-faint">{label}</p>
-      <p className={cx('font-display text-2xl font-bold mt-0.5', tone)}>{value}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11.5px] font-semibold text-ink-faint">{label}</p>
+        <span
+          className={cx(
+            'grid place-items-center size-7 rounded-lg transition-transform duration-200 group-hover:scale-110',
+            chip,
+          )}
+        >
+          <Icon size={14} strokeWidth={2.25} />
+        </span>
+      </div>
+      <p className={cx('font-display text-[26px] leading-8 font-bold mt-1', num)}>{value}</p>
+      <span
+        className={cx(
+          'absolute inset-x-0 bottom-0 h-[3px] transition-opacity',
+          bar,
+          active ? 'opacity-100' : 'opacity-0 group-hover:opacity-40',
+        )}
+      />
     </button>
   )
 }
@@ -93,8 +117,15 @@ function PersonRow({ e, onOpen, managerName, isHQ }) {
           </span>
         )}
       </td>
-      <td className="px-3 text-[13px] text-ink-soft hidden xl:table-cell truncate max-w-36">
-        {managerName ?? '—'}
+      <td className="px-3 hidden xl:table-cell max-w-40">
+        {managerName ? (
+          <span className="inline-flex items-center gap-2 min-w-0">
+            <Avatar name={managerName} size={22} />
+            <span className="text-[12.5px] text-ink-soft truncate">{managerName}</span>
+          </span>
+        ) : (
+          <span className="text-ink-faint">—</span>
+        )}
       </td>
       <td className="px-3">
         <StatusPill status={e.status} />
@@ -130,9 +161,13 @@ function PersonCard({ e, onOpen }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       onClick={onOpen}
-      className="text-left bg-surface rounded-2xl border border-hairline shadow-card p-5 hover:border-iris/50 hover:shadow-pop transition-all cursor-pointer"
+      className="relative overflow-hidden text-left bg-surface rounded-2xl border border-hairline shadow-card p-5 hover:border-iris/50 hover:shadow-pop hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     >
-      <div className="flex items-start justify-between">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-12 -right-12 size-32 rounded-full bg-iris-soft/80 blur-2xl"
+      />
+      <div className="relative flex items-start justify-between">
         <Avatar name={e.name} photo={e.photo} size={52} />
         <StatusPill status={e.status} />
       </div>
@@ -219,11 +254,11 @@ export default function Directory() {
 
       {/* KPI strip — click to filter by status */}
       <div className="flex gap-3 mt-5 overflow-x-auto pb-1">
-        <Kpi label="Total people" value={counts.total} onClick={() => setStatus('all')} active={status === 'all'} />
-        <Kpi label="Active" value={counts.active} tone="text-mint" onClick={() => setStatus('active')} active={status === 'active'} />
-        <Kpi label="On probation" value={counts.probation} tone="text-amber-ink" onClick={() => setStatus('probation')} active={status === 'probation'} />
-        <Kpi label="Notice period" value={counts.notice} tone="text-rose-ink" onClick={() => setStatus('notice')} active={status === 'notice'} />
-        <Kpi label="Exited" value={counts.exited} tone="text-ink-faint" onClick={() => setStatus('exited')} active={status === 'exited'} />
+        <Kpi label="Total people" value={counts.total} icon={UsersRound} chip="bg-iris-soft text-iris-text" bar="bg-iris" onClick={() => setStatus('all')} active={status === 'all'} />
+        <Kpi label="Active" value={counts.active} icon={UserCheck} chip="bg-mint-soft text-mint" num="text-mint" bar="bg-mint" onClick={() => setStatus('active')} active={status === 'active'} />
+        <Kpi label="On probation" value={counts.probation} icon={Hourglass} chip="bg-amber-soft text-amber-ink" num="text-amber-ink" bar="bg-amber-ink" onClick={() => setStatus('probation')} active={status === 'probation'} />
+        <Kpi label="Notice period" value={counts.notice} icon={DoorOpen} chip="bg-rose-soft text-rose-ink" num="text-rose-ink" bar="bg-rose-ink" onClick={() => setStatus('notice')} active={status === 'notice'} />
+        <Kpi label="Exited" value={counts.exited} icon={Archive} chip="bg-slate-soft text-ink-faint" num="text-ink-faint" bar="bg-ink-faint" onClick={() => setStatus('exited')} active={status === 'exited'} />
       </div>
 
       {/* Toolbar */}
@@ -320,7 +355,7 @@ export default function Directory() {
               <div className="bg-surface rounded-2xl border border-hairline shadow-card overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[560px]">
                   <thead>
-                    <tr className="text-[11px] uppercase tracking-[0.08em] text-ink-faint border-b border-hairline">
+                    <tr className="text-[10.5px] uppercase tracking-[0.1em] text-ink-faint border-b border-hairline bg-paper/70">
                       <th className="py-2.5 pl-4 pr-3 font-semibold">Employee</th>
                       <th className="px-3 font-semibold hidden md:table-cell">Code</th>
                       <th className="px-3 font-semibold hidden sm:table-cell">Department</th>
