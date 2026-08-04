@@ -58,14 +58,14 @@ function Kpi({ label, value, icon: Icon, chip, num, bar, onClick, active }) {
     <button
       onClick={onClick}
       className={cx(
-        'group relative flex-1 min-w-32 overflow-hidden rounded-2xl border bg-surface px-4 pt-3 pb-3.5 text-left transition-all duration-200 cursor-pointer',
+        'group relative flex-1 min-w-32 overflow-hidden rounded-2xl border bg-surface px-4 pt-3 pb-4 text-left transition-all duration-200 cursor-pointer',
         active
-          ? 'border-iris/50 shadow-pop -translate-y-0.5 ring-2 ring-iris/15'
+          ? 'border-iris/50 shadow-pop ring-2 ring-iris/15'
           : 'border-hairline hover:-translate-y-0.5 hover:shadow-pop hover:border-hairline-strong',
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[11.5px] font-semibold text-ink-faint">{label}</p>
+        <p className={cx('text-[11.5px] font-semibold', active ? 'text-ink-soft' : 'text-ink-faint')}>{label}</p>
         <span
           className={cx(
             'grid place-items-center size-7 rounded-lg transition-transform duration-200 group-hover:scale-110',
@@ -78,9 +78,9 @@ function Kpi({ label, value, icon: Icon, chip, num, bar, onClick, active }) {
       <p className={cx('font-display text-[26px] leading-8 font-bold mt-1', num)}>{value}</p>
       <span
         className={cx(
-          'absolute inset-x-0 bottom-0 h-[3px] transition-opacity',
+          'absolute left-4 right-4 bottom-1.5 h-[3px] rounded-full transition-opacity',
           bar,
-          active ? 'opacity-100' : 'opacity-0 group-hover:opacity-40',
+          active ? 'opacity-90' : 'opacity-0 group-hover:opacity-40',
         )}
       />
     </button>
@@ -254,7 +254,7 @@ export default function Directory() {
 
       {/* KPI strip — click to filter by status */}
       <div className="flex gap-3 mt-5 overflow-x-auto pb-1">
-        <Kpi label="Total people" value={counts.total} icon={UsersRound} chip="bg-iris-soft text-iris-text" bar="bg-iris" onClick={() => setStatus('all')} active={status === 'all'} />
+        <Kpi label="Total people" value={counts.total} icon={UsersRound} chip="bg-iris-soft text-iris-text" bar="bg-gradient-to-r from-iris to-aurora" onClick={() => setStatus('all')} active={status === 'all'} />
         <Kpi label="Active" value={counts.active} icon={UserCheck} chip="bg-mint-soft text-mint" num="text-mint" bar="bg-mint" onClick={() => setStatus('active')} active={status === 'active'} />
         <Kpi label="On probation" value={counts.probation} icon={Hourglass} chip="bg-amber-soft text-amber-ink" num="text-amber-ink" bar="bg-amber-ink" onClick={() => setStatus('probation')} active={status === 'probation'} />
         <Kpi label="Notice period" value={counts.notice} icon={DoorOpen} chip="bg-rose-soft text-rose-ink" num="text-rose-ink" bar="bg-rose-ink" onClick={() => setStatus('notice')} active={status === 'notice'} />
