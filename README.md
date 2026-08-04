@@ -9,26 +9,31 @@ data (Aadhaar/PAN/UAN/ESI, bank + IFSC) with privacy-first masking, profile comp
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the full feature plan (attendance, shifts,
 payroll, documents).
 
-> **Setting up the backend?** Data is currently browser-local (`localStorage`). To make
-> it shared and multi-user, follow **[docs/BACKEND.md](docs/BACKEND.md)** — a complete,
-> self-contained brief (schema, API contract, entity isolation, DPDP security, Hostinger
-> deploy) you can hand to a Claude Code session on the server.
+> **Backend:** implemented as a same-origin **PHP + MySQL** API under `/api`
+> ([`api/`](api/README.md)) — server-enforced entity isolation, AES-256-GCM
+> encryption at rest, masking + audited reveal, JWT auth, atomic code generation,
+> and an audit log. Runs locally in Docker and deploys to Hostinger unchanged.
+> Design brief: [docs/BACKEND.md](docs/BACKEND.md) · Deploy:
+> [docs/DEPLOY-HOSTINGER.md](docs/DEPLOY-HOSTINGER.md).
 
 ## Stack
 
 - Vite + React 19, React Router
 - Tailwind CSS v4 (design tokens in `src/index.css` `@theme`)
 - Framer Motion, Lucide icons
-- Phase 1 persistence: localStorage (`src/store/EmployeeStore.jsx`) — production ships
-  empty; a demo roster seeds in dev only. Swap for an API when the backend lands
-  (see [docs/BACKEND.md](docs/BACKEND.md))
+- Persistence: the PHP + MySQL API (`src/store/EmployeeStore.jsx` → `/api`); auth via
+  a signed-in user whose entity scopes all data. Production ships empty; a demo roster
+  seeds in local dev only.
 
 ## Develop
 
 ```sh
+docker compose up -d --build   # backend: MySQL + PHP API on :8080 (see api/README.md)
 npm install
-npm run dev   # http://localhost:5173
+npm run dev                    # http://localhost:5173 (proxies /api -> :8080)
 ```
+
+Sign in with a seeded account, e.g. `hr@noblediagnostics.in` / `Apex@1234`.
 
 ## Structure
 

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import './index.css'
+import { AuthProvider } from './store/AuthContext'
 import { EmployeeProvider } from './store/EmployeeStore'
 import { EntityProvider } from './store/EntityContext'
 import AppLayout from './components/AppLayout'
@@ -26,10 +27,12 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <EntityProvider>
-      <EmployeeProvider>
-        <RouterProvider router={router} />
-      </EmployeeProvider>
-    </EntityProvider>
+    <AuthProvider>
+      <EntityProvider>
+        <EmployeeProvider>
+          <RouterProvider router={router} />
+        </EmployeeProvider>
+      </EntityProvider>
+    </AuthProvider>
   </StrictMode>,
 )

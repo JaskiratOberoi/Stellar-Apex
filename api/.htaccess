@@ -1,0 +1,25 @@
+# Route every /api/* request to the front controller, and make sure the
+# Authorization header reaches PHP (some Apache/FastCGI setups strip it).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Pass HTTP Authorization through to PHP.
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
+
+    # Send everything that isn't a real file/dir to index.php.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Belt-and-suspenders for CGI/FastCGI SAPIs.
+<IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
+# Never serve secrets or SQL even if someone guesses the path.
+<FilesMatch "(config\.php|config\.example\.php|\.sql)$">
+    Require all denied
+</FilesMatch>

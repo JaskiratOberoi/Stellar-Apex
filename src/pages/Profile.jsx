@@ -25,9 +25,6 @@ import {
   cx,
   fmtDate,
   groupAadhaar,
-  maskAadhaar,
-  maskAccount,
-  maskPan,
   tenure,
 } from '../lib/utils'
 import {
@@ -104,11 +101,17 @@ function ComplianceRow({ label, ok, children }) {
 export default function Profile() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { byId } = useEmployees()
+  const { byId, reveal, loading } = useEmployees()
   const { entity } = useEntity()
   const [tab, setTab] = useState('overview')
 
   const e = byId(id)
+
+  // Roster still loading (e.g. hard refresh) — don't flash "not found".
+  if (!e && loading) {
+    return <div className="max-w-3xl mx-auto text-center py-20 text-ink-faint text-[13px]">Loading…</div>
+  }
+
   /* Entity isolation: a record from another portal is indistinguishable
      from a missing one — never confirm it exists. */
   if (!e || e.company !== entity.id) {
@@ -311,10 +314,10 @@ export default function Profile() {
                 <ShieldCheck size={13} /> Sensitive fields are masked. Reveals auto-hide after 10s.
               </p>
               <ComplianceRow label="PAN" ok={!!e.pan}>
-                <MaskedValue masked={maskPan(e.pan)} revealed={e.pan} />
+                <MaskedValue masked={e.pan} onReveal={() => reveal(e.id, 'pan')} />
               </ComplianceRow>
               <ComplianceRow label="Aadhaar" ok={!!e.aadhaar}>
-                <MaskedValue masked={maskAadhaar(e.aadhaar)} revealed={groupAadhaar(e.aadhaar)} />
+                <MaskedValue masked={e.aadhaar} onReveal={async () => groupAadhaar(await reveal(e.id, 'aadhaar'))} />
               </ComplianceRow>
               <ComplianceRow label="PF — UAN" ok={!!e.uan || ['Consultant', 'Intern'].includes(e.employmentType)}>
                 {e.uan ? (
@@ -341,7 +344,7 @@ export default function Profile() {
               <dl>
                 <FieldRow label="Account name">{e.bank?.accountName}</FieldRow>
                 <FieldRow label="Account no.">
-                  <MaskedValue masked={maskAccount(e.bank?.accountNumber)} revealed={e.bank?.accountNumber} />
+                  <MaskedValue masked={e.bank?.accountNumber} onReveal={() => reveal(e.id, 'bank')} />
                 </FieldRow>
                 <FieldRow label="Bank">{e.bank?.bankName}</FieldRow>
                 <FieldRow label="IFSC" mono>{e.bank?.ifsc}</FieldRow>

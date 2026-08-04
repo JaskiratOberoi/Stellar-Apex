@@ -49,6 +49,8 @@ export default function AddEmployee() {
   const { employees, nextCode, addEmployee } = useEmployees()
   const { entity } = useEntity()
   const [step, setStep] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const [f, setF] = useState({
     name: '',
     gender: '',
@@ -101,11 +103,11 @@ export default function AddEmployee() {
     true,
   ][step]
 
-  const submit = () => {
-    const id = `e${Date.now().toString(36)}`
-    addEmployee({
-      id,
-      code,
+  const submit = async () => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+    const created = await addEmployee({
       name: f.name.trim(),
       photo: null,
       gender: f.gender || undefined,
@@ -121,7 +123,6 @@ export default function AddEmployee() {
       emergencyContact: f.ecName
         ? { name: f.ecName, relation: f.ecRelation, phone: f.ecPhone }
         : undefined,
-      company: entity.id,
       branch: f.branch,
       department: f.department,
       designation: f.designation,
@@ -144,7 +145,11 @@ export default function AddEmployee() {
           }
         : undefined,
     })
-    navigate(`/people/${id}`)
+    navigate(`/people/${created.id}`)
+    } catch (err) {
+      setSaveError(err.message || 'Could not save employee')
+      setSaving(false)
+    }
   }
 
   return (
@@ -375,6 +380,10 @@ export default function AddEmployee() {
         )}
       </motion.div>
 
+      {saveError && (
+        <p className="mt-4 text-[12.5px] text-rose-ink bg-rose-soft rounded-lg px-3 py-2">{saveError}</p>
+      )}
+
       {/* Footer nav */}
       <div className="flex items-center justify-between mt-4">
         <button
@@ -384,16 +393,16 @@ export default function AddEmployee() {
           <ArrowLeft size={14} /> {step === 0 ? 'Cancel' : 'Back'}
         </button>
         <button
-          disabled={!stepValid}
+          disabled={!stepValid || saving}
           onClick={() => (step === STEPS.length - 1 ? submit() : setStep(step + 1))}
           className={cx(
             'inline-flex items-center gap-1.5 h-10 px-5 rounded-xl text-[13px] font-semibold text-white transition-colors',
-            stepValid ? 'bg-iris hover:bg-iris-deep cursor-pointer' : 'bg-ink-faint/40 cursor-not-allowed',
+            stepValid && !saving ? 'bg-iris hover:bg-iris-deep cursor-pointer' : 'bg-ink-faint/40 cursor-not-allowed',
           )}
         >
           {step === STEPS.length - 1 ? (
             <>
-              <Check size={15} strokeWidth={2.5} /> Create employee
+              <Check size={15} strokeWidth={2.5} /> {saving ? 'Saving…' : 'Create employee'}
             </>
           ) : (
             <>

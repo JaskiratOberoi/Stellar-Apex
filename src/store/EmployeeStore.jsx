@@ -1,78 +1,97 @@
-import { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { apiFetch } from '../lib/api'
+import { useAuth } from './AuthContext'
+import { useEntity } from './EntityContext'
 
 /**
- * Phase-1 store: roster persisted to localStorage.
- * Production starts empty — HR adds real employees via the wizard.
- * A demo roster is seeded only in local development (dynamic import below),
- * so no fake data ever ships in the production bundle.
- * Swap the reducer for API calls when the backend lands.
+ * Employee store — backed by the API (docs/BACKEND.md §7).
+ * Loads the roster for the active entity on mount / entity change, and exposes
+ * the same surface the pages already use, so no screen had to change its calls:
+ *   { employees, byId, reportsOf, nextCode, addEmployee, updateEmployee, reveal }
+ * Data is server-scoped by the authenticated user's entity — the client never
+ * sees another entity's rows.
  */
-
-const STORAGE_KEY = 'stellar-apex:employees:v2' // v2: Stellar entity removed, Qugen branch list
-
 const EmployeeContext = createContext(null)
 
-function load() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {
-    /* fall through to empty */
-  }
-  return []
-}
-
-function reducer(state, action) {
-  switch (action.type) {
-    case 'seed':
-      return action.employees
-    case 'add':
-      return [...state, action.employee]
-    case 'update':
-      return state.map((e) => (e.id === action.employee.id ? { ...e, ...action.employee } : e))
-    case 'reset':
-      return []
-    default:
-      return state
-  }
-}
-
 export function EmployeeProvider({ children }) {
-  const [employees, dispatch] = useReducer(reducer, null, load)
+  const { user } = useAuth()
+  const { entity } = useEntity()
+  const entityId = entity?.id
 
-  // Dev-only: seed the demo roster on a fresh store. This effect runs before
-  // the persist effect below, so it reads "is this a fresh store?" from
-  // localStorage before anything is written. The dynamic import keeps
-  // demoRoster.js (fake names, Aadhaar/PAN/bank) out of the production bundle.
-  useEffect(() => {
-    if (import.meta.env.DEV && localStorage.getItem(STORAGE_KEY) === null) {
-      import('../data/demoRoster.js').then(({ DEMO_EMPLOYEES }) =>
-        dispatch({ type: 'seed', employees: DEMO_EMPLOYEES }),
-      )
+  const [employees, setEmployees] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const refresh = useCallback(async () => {
+    if (!user || !entityId) {
+      setEmployees([])
+      return
     }
-  }, [])
+    setLoading(true)
+    setError(null)
+    try {
+      const list = await apiFetch('/employees', { entity: entityId })
+      setEmployees(Array.isArray(list) ? list : [])
+    } catch (err) {
+      setError(err.message)
+      setEmployees([])
+    } finally {
+      setLoading(false)
+    }
+  }, [user, entityId])
 
+  // Load whenever the signed-in user or active entity changes.
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(employees))
-  }, [employees])
+    refresh()
+  }, [refresh])
 
   const api = useMemo(
     () => ({
       employees,
+      loading,
+      error,
       byId: (id) => employees.find((e) => e.id === id),
       reportsOf: (id) => employees.filter((e) => e.reportsTo === id),
+      // Cosmetic preview only — the server assigns the real code on save.
       nextCode: (companyCode) => {
         const nums = employees
-          .filter((e) => e.code.startsWith(companyCode + '-'))
+          .filter((e) => e.code?.startsWith(companyCode + '-'))
           .map((e) => parseInt(e.code.split('-')[1], 10))
+          .filter((n) => !Number.isNaN(n))
         const next = (nums.length ? Math.max(...nums) : 0) + 1
         return `${companyCode}-${String(next).padStart(4, '0')}`
       },
-      addEmployee: (employee) => dispatch({ type: 'add', employee }),
-      updateEmployee: (employee) => dispatch({ type: 'update', employee }),
-      resetRoster: () => dispatch({ type: 'reset' }),
+      // Returns the created record (with its server-assigned id + code).
+      addEmployee: async (employee) => {
+        const created = await apiFetch('/employees', {
+          method: 'POST',
+          body: employee,
+          entity: entityId,
+        })
+        setEmployees((prev) => [...prev, created])
+        return created
+      },
+      updateEmployee: async (employee) => {
+        const updated = await apiFetch(`/employees/${employee.id}`, {
+          method: 'PUT',
+          body: employee,
+          entity: entityId,
+        })
+        setEmployees((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+        return updated
+      },
+      // Audited, role-gated full-value fetch for a sensitive field.
+      reveal: async (id, field) => {
+        const { value } = await apiFetch(`/employees/${id}/reveal`, {
+          method: 'POST',
+          body: { field },
+          entity: entityId,
+        })
+        return value
+      },
+      refresh,
     }),
-    [employees],
+    [employees, loading, error, entityId, refresh],
   )
 
   return <EmployeeContext.Provider value={api}>{children}</EmployeeContext.Provider>
