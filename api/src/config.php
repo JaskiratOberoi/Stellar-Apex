@@ -28,6 +28,10 @@ function app_config(): array {
         'jwt_ttl'     => (int) $env('JWT_TTL', 28800), // seconds (8h)
         // 32-byte AES key as 64 hex chars. Generate: openssl rand -hex 32
         'enc_key_hex' => $env('ENC_KEY', '0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0'),
+        // Onboarding photo storage — MUST be outside the web root. Docker sets
+        // UPLOADS_DIR=/var/uploads; the fallback suits a Hostinger-style layout
+        // (one level above public_html/.../api).
+        'uploads_dir' => $env('UPLOADS_DIR', __DIR__ . '/../../uploads'),
     ];
 
     $cfg = array_merge($defaults, $overrides);

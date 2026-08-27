@@ -14,8 +14,12 @@ import Dashboard from './pages/Dashboard'
 import Attendance from './pages/Attendance'
 import Payroll from './pages/Payroll'
 import Documents from './pages/Documents'
+import Onboard from './pages/Onboard'
+import OnboardingQueue from './pages/OnboardingQueue'
 
 const router = createBrowserRouter([
+  // PUBLIC: field onboarding form — deliberately outside the auth-gated shell.
+  { path: '/onboard', element: <Onboard /> },
   {
     element: <AppLayout />,
     children: [
@@ -24,6 +28,7 @@ const router = createBrowserRouter([
       { path: '/people/new', element: <AddEmployee /> },
       { path: '/people/:id', element: <Profile /> },
       { path: '/org', element: <OrgChart /> },
+      { path: '/onboarding', element: <OnboardingQueue /> },
       { path: '/dashboard', element: <Dashboard /> },
       { path: '/attendance', element: <Attendance /> },
       { path: '/payroll', element: <Payroll /> },

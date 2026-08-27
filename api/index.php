@@ -8,6 +8,7 @@ require_once __DIR__ . '/src/http.php';
 require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/audit.php';
 require_once __DIR__ . '/src/employees.php';
+require_once __DIR__ . '/src/onboarding.php';
 
 set_exception_handler(function (Throwable $e) {
     error_log('[api] ' . $e->getMessage());
@@ -44,6 +45,78 @@ $segments = $path === '/' ? [] : explode('/', ltrim($path, '/'));
 if ($method === 'GET' && $path === '/health') {
     db()->query('SELECT 1');
     json_response(['ok' => true]);
+}
+
+/* ---- PUBLIC field onboarding (no auth; multipart/form-data) ----
+   Writes to the pending queue only — never to employees. Photos stored
+   outside the web root; IP rate-limited. */
+if ($method === 'POST' && $path === '/onboard') {
+    $ip = client_ip() ?? '0.0.0.0';
+    if (onboard_rate_limited($ip)) json_error('Too many submissions from this connection. Try again later.', 429);
+
+    $name = trim($_POST['name'] ?? '');
+    $designation = strtoupper(trim($_POST['designation'] ?? ''));
+    if ($name === '' || mb_strlen($name) > 96) json_error('Name is required', 422);
+    if (!in_array($designation, ONBOARD_DESIGNATIONS, true)) json_error('Designation must be TM, ASM, RSM, or ZSM', 422);
+
+    $num = function ($k) {
+        $v = trim($_POST[$k] ?? '');
+        if ($v === '') return null;
+        $v = str_replace([',', ' '], '', $v);
+        if (!is_numeric($v) || (float) $v < 0 || (float) $v > 99999999) json_error("Invalid amount for $k", 422);
+        return (float) $v;
+    };
+    $fixedSalary = $num('fixedSalary');
+    $expense = $num('expenseComponent');
+
+    if (empty($_FILES['aadhaarPhoto']['tmp_name'])) json_error('Aadhaar photo is required', 422);
+    if (empty($_FILES['panPhoto']['tmp_name'])) json_error('PAN photo is required', 422);
+
+    $id = ulid();
+    $aadhaarFile = store_photo($_FILES['aadhaarPhoto'], $id, 'aadhaar');
+    if (str_starts_with($aadhaarFile, '!')) json_error('Aadhaar photo: ' . substr($aadhaarFile, 1), 422);
+    $panFile = store_photo($_FILES['panPhoto'], $id, 'pan');
+    if (str_starts_with($panFile, '!')) json_error('PAN photo: ' . substr($panFile, 1), 422);
+
+    db()->prepare(
+        'INSERT INTO onboarding_submissions
+           (id, entity_id, name, designation, area, location, fixed_salary, expense_component, aadhaar_photo, pan_photo, ip)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    )->execute([
+        $id, 'noble', $name, $designation,
+        trim($_POST['area'] ?? '') ?: null,
+        trim($_POST['location'] ?? '') ?: null,
+        $fixedSalary, $expense, $aadhaarFile, $panFile, $ip,
+    ]);
+    audit(null, 'noble', null, 'onboard_submit', null, ['submission' => $id, 'name' => $name]);
+    json_response(['ok' => true, 'id' => $id], 201);
+}
+
+/* ---- Onboarding queue (auth-gated) ---- */
+if ($method === 'GET' && $path === '/onboarding') {
+    $user = require_auth();
+    require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
+    json_response(list_onboarding());
+}
+
+if (count($segments) === 4 && $segments[0] === 'onboarding' && $segments[2] === 'photo' && $method === 'GET') {
+    $user = require_auth();
+    require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
+    $row = get_onboarding_row($segments[1]);
+    if (!$row) json_error('Not found', 404);
+    $file = $segments[3] === 'aadhaar' ? $row['aadhaar_photo'] : ($segments[3] === 'pan' ? $row['pan_photo'] : null);
+    if (!$file) json_error('Not found', 404);
+    $full = uploads_dir() . '/' . basename($file); // basename: no traversal
+    if (!is_file($full)) json_error('Not found', 404);
+    audit((int) $user['id'], $row['entity_id'], null, 'onboard_photo_view', $segments[3], ['submission' => $row['id']]);
+    $mime = match (pathinfo($full, PATHINFO_EXTENSION)) {
+        'png' => 'image/png', 'webp' => 'image/webp', default => 'image/jpeg',
+    };
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . filesize($full));
+    header('Cache-Control: private, no-store');
+    readfile($full);
+    exit;
 }
 
 if ($method === 'POST' && $path === '/auth/login') {

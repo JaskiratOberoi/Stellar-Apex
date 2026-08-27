@@ -7,6 +7,7 @@
 // PHP container; in prod, Apache serves /api next to the static site. Override
 // with VITE_API_URL only for a cross-origin backend.
 const BASE = import.meta.env.VITE_API_URL || '/api'
+export const API_BASE = BASE
 
 const TOKEN_KEY = 'stellar-apex:token'
 const ENTITY_KEY = 'stellar-apex:entity:v1' // chosen entity (super_admin only)

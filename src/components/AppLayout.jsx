@@ -3,6 +3,7 @@ import {
   ArrowsLeftRight,
   CalendarCheck,
   Files,
+  IdentificationCard,
   List,
   MagnifyingGlass,
   Plus,
@@ -24,6 +25,7 @@ import Login from '../pages/Login'
 const NAV = [
   { to: '/people', label: 'People', icon: UsersThree },
   { to: '/org', label: 'Org chart', icon: TreeStructure },
+  { to: '/onboarding', label: 'Onboarding', icon: IdentificationCard },
   { to: '/dashboard', label: 'Dashboard', icon: SquaresFour },
   { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
   { to: '/payroll', label: 'Payroll', icon: Wallet },

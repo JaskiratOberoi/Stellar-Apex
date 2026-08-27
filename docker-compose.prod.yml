@@ -50,10 +50,13 @@ services:
       ENC_KEY: ${ENC_KEY:?set in .env.prod}
       CORS_ORIGIN: ${CORS_ORIGIN:-}
       SEED_MODE: ${SEED_MODE:-sample}
+      UPLOADS_DIR: /var/uploads
     ports:
       - "${PHP_HOST_PORT:-8090}:80"
     volumes:
       - ./api:/var/www/html/api:ro
+      - apex_uploads_prod:/var/uploads
 
 volumes:
   apex_db_prod_data:
+  apex_uploads_prod:
