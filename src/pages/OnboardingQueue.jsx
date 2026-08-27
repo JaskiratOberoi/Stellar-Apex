@@ -56,7 +56,7 @@ function PhotoButton({ id, which, label }) {
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4" onClick={close}>
           <div className="max-w-2xl w-full bg-surface-high rounded-2xl shadow-pop overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-hairline">
-              <p className="text-[13.5px] font-semibold capitalize">{which} photo</p>
+              <p className="text-[13.5px] font-semibold capitalize">{which.replace('_', ' — ')} photo</p>
               <button onClick={close} className="p-1.5 rounded-lg text-ink-faint hover:text-ink cursor-pointer" aria-label="Close">
                 <X size={16} />
               </button>
@@ -149,10 +149,18 @@ export default function OnboardingQueue() {
                   <td className="px-3 text-[13px] text-right font-mono">{inr(s.fixedSalary)}</td>
                   <td className="px-3 text-[13px] text-right font-mono">{inr(s.expenseComponent)}</td>
                   <td className="px-3 whitespace-nowrap">
-                    <span className="inline-flex gap-3">
-                      {s.hasAadhaarPhoto && <PhotoButton id={s.id} which="aadhaar" label="Aadhaar" />}
-                      {s.hasPanPhoto && <PhotoButton id={s.id} which="pan" label="PAN" />}
-                    </span>
+                    <div className="flex flex-col gap-0.5 text-[11.5px]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-ink-faint w-14">Aadhaar</span>
+                        {s.photos?.aadhaarFront && <PhotoButton id={s.id} which="aadhaar_front" label="Front" />}
+                        {s.photos?.aadhaarBack && <PhotoButton id={s.id} which="aadhaar_back" label="Back" />}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-ink-faint w-14">PAN</span>
+                        {s.photos?.panFront && <PhotoButton id={s.id} which="pan_front" label="Front" />}
+                        {s.photos?.panBack && <PhotoButton id={s.id} which="pan_back" label="Back" />}
+                      </span>
+                    </div>
                   </td>
                   <td className="px-3">
                     <span className={cx('inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-semibold capitalize', STATUS_TONE[s.status])}>

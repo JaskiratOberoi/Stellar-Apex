@@ -3,8 +3,9 @@ FROM php:8.2-apache
 # MySQL driver + URL rewriting for the /api front controller.
 RUN docker-php-ext-install pdo_mysql && a2enmod rewrite
 
-# Onboarding photo uploads (Aadhaar/PAN docs) need more than the 2M default.
-RUN printf 'upload_max_filesize=10M\npost_max_size=25M\n' \
+# Onboarding photo uploads (Aadhaar/PAN, both sides = 4 files) need more than
+# the 2M/8M defaults.
+RUN printf 'upload_max_filesize=10M\npost_max_size=45M\n' \
       > /usr/local/etc/php/conf.d/uploads.ini \
     && mkdir -p /var/uploads && chown www-data:www-data /var/uploads
 

@@ -9,6 +9,13 @@ require_once __DIR__ . '/employees.php'; // ulid()
 const ONBOARD_DESIGNATIONS = ['TM', 'ASM', 'RSM', 'ZSM'];
 const ONBOARD_MAX_PHOTO_BYTES = 8 * 1024 * 1024; // 8 MB
 const ONBOARD_IP_HOURLY_LIMIT = 15;
+// form field name => db column stem; both sides of both documents are required
+const ONBOARD_PHOTOS = [
+    'aadhaarFront' => 'aadhaar_front',
+    'aadhaarBack'  => 'aadhaar_back',
+    'panFront'     => 'pan_front',
+    'panBack'      => 'pan_back',
+];
 
 function uploads_dir(): string {
     $dir = app_config()['uploads_dir'];
@@ -53,8 +60,12 @@ function onboarding_row_to_api(array $r): array {
         'location'         => $r['location'],
         'fixedSalary'      => $r['fixed_salary'] !== null ? (float) $r['fixed_salary'] : null,
         'expenseComponent' => $r['expense_component'] !== null ? (float) $r['expense_component'] : null,
-        'hasAadhaarPhoto'  => !empty($r['aadhaar_photo']),
-        'hasPanPhoto'      => !empty($r['pan_photo']),
+        'photos'           => [
+            'aadhaarFront' => !empty($r['aadhaar_front_photo']),
+            'aadhaarBack'  => !empty($r['aadhaar_back_photo']),
+            'panFront'     => !empty($r['pan_front_photo']),
+            'panBack'      => !empty($r['pan_back_photo']),
+        ],
         'status'           => $r['status'],
         'createdAt'        => $r['created_at'],
     ];

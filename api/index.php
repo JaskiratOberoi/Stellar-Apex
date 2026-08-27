@@ -69,24 +69,34 @@ if ($method === 'POST' && $path === '/onboard') {
     $fixedSalary = $num('fixedSalary');
     $expense = $num('expenseComponent');
 
-    if (empty($_FILES['aadhaarPhoto']['tmp_name'])) json_error('Aadhaar photo is required', 422);
-    if (empty($_FILES['panPhoto']['tmp_name'])) json_error('PAN photo is required', 422);
+    // Both sides of both documents are required.
+    $labels = [
+        'aadhaarFront' => 'Aadhaar front photo', 'aadhaarBack' => 'Aadhaar back photo',
+        'panFront' => 'PAN front photo', 'panBack' => 'PAN back photo',
+    ];
+    foreach (ONBOARD_PHOTOS as $field => $stem) {
+        if (empty($_FILES[$field]['tmp_name'])) json_error($labels[$field] . ' is required', 422);
+    }
 
     $id = ulid();
-    $aadhaarFile = store_photo($_FILES['aadhaarPhoto'], $id, 'aadhaar');
-    if (str_starts_with($aadhaarFile, '!')) json_error('Aadhaar photo: ' . substr($aadhaarFile, 1), 422);
-    $panFile = store_photo($_FILES['panPhoto'], $id, 'pan');
-    if (str_starts_with($panFile, '!')) json_error('PAN photo: ' . substr($panFile, 1), 422);
+    $stored = [];
+    foreach (ONBOARD_PHOTOS as $field => $stem) {
+        $fn = store_photo($_FILES[$field], $id, $stem);
+        if (str_starts_with($fn, '!')) json_error($labels[$field] . ': ' . substr($fn, 1), 422);
+        $stored[$stem] = $fn;
+    }
 
     db()->prepare(
         'INSERT INTO onboarding_submissions
-           (id, entity_id, name, designation, area, location, fixed_salary, expense_component, aadhaar_photo, pan_photo, ip)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+           (id, entity_id, name, designation, area, location, fixed_salary, expense_component,
+            aadhaar_front_photo, aadhaar_back_photo, pan_front_photo, pan_back_photo, ip)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )->execute([
         $id, 'noble', $name, $designation,
         trim($_POST['area'] ?? '') ?: null,
         trim($_POST['location'] ?? '') ?: null,
-        $fixedSalary, $expense, $aadhaarFile, $panFile, $ip,
+        $fixedSalary, $expense,
+        $stored['aadhaar_front'], $stored['aadhaar_back'], $stored['pan_front'], $stored['pan_back'], $ip,
     ]);
     audit(null, 'noble', null, 'onboard_submit', null, ['submission' => $id, 'name' => $name]);
     json_response(['ok' => true, 'id' => $id], 201);
@@ -104,7 +114,9 @@ if (count($segments) === 4 && $segments[0] === 'onboarding' && $segments[2] === 
     require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
     $row = get_onboarding_row($segments[1]);
     if (!$row) json_error('Not found', 404);
-    $file = $segments[3] === 'aadhaar' ? $row['aadhaar_photo'] : ($segments[3] === 'pan' ? $row['pan_photo'] : null);
+    $which = $segments[3]; // aadhaar_front | aadhaar_back | pan_front | pan_back
+    if (!in_array($which, array_values(ONBOARD_PHOTOS), true)) json_error('Not found', 404);
+    $file = $row[$which . '_photo'] ?? null;
     if (!$file) json_error('Not found', 404);
     $full = uploads_dir() . '/' . basename($file); // basename: no traversal
     if (!is_file($full)) json_error('Not found', 404);

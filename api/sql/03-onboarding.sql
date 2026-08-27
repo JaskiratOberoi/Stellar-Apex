@@ -12,8 +12,11 @@ CREATE TABLE IF NOT EXISTS onboarding_submissions (
   location          VARCHAR(96)   NULL,
   fixed_salary      DECIMAL(12,2) NULL,
   expense_component DECIMAL(12,2) NULL,
-  aadhaar_photo     VARCHAR(255)  NULL,                 -- filename in uploads dir
-  pan_photo         VARCHAR(255)  NULL,
+  -- document photos, both sides required (filenames in uploads dir)
+  aadhaar_front_photo VARCHAR(255) NULL,
+  aadhaar_back_photo  VARCHAR(255) NULL,
+  pan_front_photo     VARCHAR(255) NULL,
+  pan_back_photo      VARCHAR(255) NULL,
   status            ENUM('pending','processed','rejected') NOT NULL DEFAULT 'pending',
   ip                VARCHAR(45)   NULL,
   created_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,

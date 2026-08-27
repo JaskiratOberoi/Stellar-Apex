@@ -128,12 +128,13 @@ function CameraModal({ title, onCapture, onClose }) {
   )
 }
 
-/* ---------------- Photo field: upload or live capture ---------------- */
-function PhotoField({ label, file, onChange }) {
+/* ------------- Photo side: one face of a document (upload or capture) ------------- */
+function PhotoSide({ doc, side, file, onChange }) {
   const inputRef = useRef(null)
   const [camera, setCamera] = useState(false)
   const [preview, setPreview] = useState(null)
   const [err, setErr] = useState(null)
+  const title = `${doc} — ${side.toLowerCase()}`
 
   useEffect(() => {
     if (!file) {
@@ -153,7 +154,7 @@ function PhotoField({ label, file, onChange }) {
       return
     }
     if (f.size > MAX_PHOTO_MB * 1024 * 1024) {
-      setErr(`Photo is too large (max ${MAX_PHOTO_MB} MB).`)
+      setErr(`Too large (max ${MAX_PHOTO_MB} MB).`)
       return
     }
     onChange(f)
@@ -161,45 +162,34 @@ function PhotoField({ label, file, onChange }) {
 
   return (
     <div>
-      <span className="block text-[12.5px] font-semibold mb-1.5">
-        {label} <span className="text-rose-ink">*</span>
-      </span>
-
+      <span className="block text-[11.5px] font-semibold text-ink-soft mb-1">{side}</span>
       {preview ? (
-        <div className="relative rounded-[10px] border border-hairline bg-surface-high p-2 flex items-center gap-3">
-          <img src={preview} alt={label} className="h-20 w-28 object-cover rounded-lg ring-1 ring-black/[0.07]" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[12.5px] font-medium truncate">{file.name}</p>
-            <p className="text-[11.5px] text-ink-faint">{(file.size / 1024).toFixed(0)} KB</p>
-          </div>
+        <div className="relative rounded-[10px] border border-hairline bg-surface-high overflow-hidden">
+          <img src={preview} alt={title} className="h-24 w-full object-cover" />
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="p-2 rounded-lg text-ink-faint hover:text-rose-ink hover:bg-rose-soft transition-colors cursor-pointer"
+            className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-ink/60 text-white hover:bg-rose-ink transition-colors cursor-pointer"
             title="Remove"
           >
-            <Trash size={16} />
+            <Trash size={14} />
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-1.5">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="h-20 rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 text-ink-soft grid place-items-center transition-colors cursor-pointer"
+            className="h-[46px] rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 text-ink-soft flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors cursor-pointer"
           >
-            <span className="flex flex-col items-center gap-1 text-[12px] font-semibold">
-              <UploadSimple size={18} /> Upload
-            </span>
+            <UploadSimple size={15} /> Upload
           </button>
           <button
             type="button"
             onClick={() => setCamera(true)}
-            className="h-20 rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 text-ink-soft grid place-items-center transition-colors cursor-pointer"
+            className="h-[46px] rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 text-ink-soft flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors cursor-pointer"
           >
-            <span className="flex flex-col items-center gap-1 text-[12px] font-semibold">
-              <Camera size={18} /> Take photo
-            </span>
+            <Camera size={15} /> Take photo
           </button>
         </div>
       )}
@@ -216,8 +206,24 @@ function PhotoField({ label, file, onChange }) {
           e.target.value = ''
         }}
       />
-      {err && <p className="text-[12px] text-rose-ink mt-1">{err}</p>}
-      {camera && <CameraModal title={label} onCapture={accept} onClose={() => setCamera(false)} />}
+      {err && <p className="text-[11.5px] text-rose-ink mt-1">{err}</p>}
+      {camera && <CameraModal title={title} onCapture={accept} onClose={() => setCamera(false)} />}
+    </div>
+  )
+}
+
+/* ------------- Document group: front + back of one card ------------- */
+function DocPhotos({ doc, front, setFront, back, setBack }) {
+  return (
+    <div className="rounded-xl border border-hairline bg-surface-high/60 p-3">
+      <p className="text-[12.5px] font-semibold mb-2">
+        {doc} <span className="text-rose-ink">*</span>{' '}
+        <span className="text-ink-faint font-normal">— both sides</span>
+      </p>
+      <div className="grid grid-cols-2 gap-2.5">
+        <PhotoSide doc={doc} side="Front" file={front} onChange={setFront} />
+        <PhotoSide doc={doc} side="Back" file={back} onChange={setBack} />
+      </div>
     </div>
   )
 }
@@ -232,14 +238,17 @@ export default function Onboard() {
     fixedSalary: '',
     expenseComponent: '',
   })
-  const [aadhaarPhoto, setAadhaarPhoto] = useState(null)
-  const [panPhoto, setPanPhoto] = useState(null)
+  const [aadhaarFront, setAadhaarFront] = useState(null)
+  const [aadhaarBack, setAadhaarBack] = useState(null)
+  const [panFront, setPanFront] = useState(null)
+  const [panBack, setPanBack] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [done, setDone] = useState(false)
 
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }))
-  const valid = f.name.trim() && f.designation && aadhaarPhoto && panPhoto
+  const valid =
+    f.name.trim() && f.designation && aadhaarFront && aadhaarBack && panFront && panBack
 
   const submit = async (e) => {
     e.preventDefault()
@@ -249,8 +258,10 @@ export default function Onboard() {
     try {
       const fd = new FormData()
       Object.entries(f).forEach(([k, v]) => fd.append(k, v))
-      fd.append('aadhaarPhoto', aadhaarPhoto)
-      fd.append('panPhoto', panPhoto)
+      fd.append('aadhaarFront', aadhaarFront)
+      fd.append('aadhaarBack', aadhaarBack)
+      fd.append('panFront', panFront)
+      fd.append('panBack', panBack)
       const res = await fetch(`${API_BASE}/onboard`, { method: 'POST', body: fd })
       const data = await res.json().catch(() => null)
       if (!res.ok) throw new Error(data?.error || `Submission failed (${res.status})`)
@@ -264,8 +275,10 @@ export default function Onboard() {
 
   const reset = () => {
     setF({ name: '', designation: '', area: '', location: '', fixedSalary: '', expenseComponent: '' })
-    setAadhaarPhoto(null)
-    setPanPhoto(null)
+    setAadhaarFront(null)
+    setAadhaarBack(null)
+    setPanFront(null)
+    setPanBack(null)
     setDone(false)
     setError(null)
   }
@@ -372,9 +385,21 @@ export default function Onboard() {
                 </Field>
               </div>
 
-              <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <PhotoField label="Aadhaar card photo" file={aadhaarPhoto} onChange={setAadhaarPhoto} />
-                <PhotoField label="PAN card photo" file={panPhoto} onChange={setPanPhoto} />
+              <div className="pt-1 space-y-3">
+                <DocPhotos
+                  doc="Aadhaar card"
+                  front={aadhaarFront}
+                  setFront={setAadhaarFront}
+                  back={aadhaarBack}
+                  setBack={setAadhaarBack}
+                />
+                <DocPhotos
+                  doc="PAN card"
+                  front={panFront}
+                  setFront={setPanFront}
+                  back={panBack}
+                  setBack={setPanBack}
+                />
               </div>
             </div>
 
