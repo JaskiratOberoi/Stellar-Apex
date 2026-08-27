@@ -12,11 +12,13 @@ import {
 } from '@phosphor-icons/react'
 import { API_BASE } from '../lib/api'
 import { cx } from '../lib/utils'
+import { NobleMark } from '../components/logos'
 
 /**
  * PUBLIC field-onboarding form — no login. New field hires (or their manager)
  * fill this on a phone; submissions land in a pending queue that HR reviews
  * inside the app. Photos post to the API and are stored outside the web root.
+ * Branded Noble end-to-end (.portal-noble re-brands every accent-* token).
  */
 
 const DESIGNATIONS = [
@@ -269,15 +271,15 @@ export default function Onboard() {
   }
 
   return (
-    <div className="min-h-dvh bg-paper px-4 py-8 sm:py-12">
+    <div className="portal-noble min-h-dvh bg-paper px-4 py-8 sm:py-12">
       <div className="max-w-xl mx-auto">
-        {/* Brand */}
+        {/* Brand — Noble Diagnostics */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="size-9 rounded-[11px] bg-rail grid place-items-center">
-            <span className="font-display font-black text-[17px] text-white leading-none translate-y-px">S</span>
+          <div className="size-10 rounded-[11px] bg-surface-high ring-1 ring-hairline grid place-items-center shrink-0">
+            <NobleMark size={28} />
           </div>
           <div className="leading-tight">
-            <p className="font-display font-bold text-[16px] tracking-tight">Stellar Apex</p>
+            <p className="font-display font-bold text-[17px] tracking-tight text-accent-text">Noble Diagnostics</p>
             <p className="text-[10.5px] text-ink-faint uppercase tracking-[0.16em]">Field onboarding</p>
           </div>
         </div>
@@ -291,8 +293,8 @@ export default function Onboard() {
             <CheckCircle size={44} weight="fill" className="text-mint mx-auto mb-3" />
             <h1 className="font-display text-[20px] font-bold tracking-tight">Details submitted</h1>
             <p className="text-[13.5px] text-ink-soft mt-2 max-w-sm mx-auto">
-              Thank you — HR has received the details and will complete the onboarding. No further
-              action is needed right now.
+              Thank you — the Noble Diagnostics HR team has received the details and will complete
+              the onboarding. No further action is needed right now.
             </p>
             <button
               onClick={reset}
@@ -313,7 +315,7 @@ export default function Onboard() {
                 <IdentificationCard size={20} />
               </div>
               <div>
-                <h1 className="font-display text-[21px] font-bold tracking-tight">Join the field team</h1>
+                <h1 className="font-display text-[21px] font-bold tracking-tight">Join the Noble field team</h1>
                 <p className="text-[12.5px] text-ink-faint">
                   Takes about two minutes. Keep your Aadhaar and PAN cards handy.
                 </p>
@@ -390,10 +392,14 @@ export default function Onboard() {
             </button>
 
             <p className="text-[11px] text-ink-faint text-center mt-3">
-              Your documents are transmitted securely and visible only to HR.
+              Your documents are transmitted securely and visible only to Noble HR.
             </p>
           </motion.form>
         )}
+
+        <p className="text-[11px] text-ink-faint text-center mt-6">
+          Noble Diagnostics Pvt. Ltd. · Powered by Stellar Apex People OS
+        </p>
       </div>
     </div>
   )
