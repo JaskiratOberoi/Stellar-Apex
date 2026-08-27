@@ -24,10 +24,10 @@ import Login from '../pages/Login'
 const NAV = [
   { to: '/people', label: 'People', icon: UsersThree },
   { to: '/org', label: 'Org chart', icon: TreeStructure },
-  { to: '/dashboard', label: 'Dashboard', icon: SquaresFour, soon: true },
-  { to: '/attendance', label: 'Attendance', icon: CalendarCheck, soon: true },
-  { to: '/payroll', label: 'Payroll', icon: Wallet, soon: true },
-  { to: '/documents', label: 'Documents', icon: Files, soon: true },
+  { to: '/dashboard', label: 'Dashboard', icon: SquaresFour },
+  { to: '/attendance', label: 'Attendance', icon: CalendarCheck },
+  { to: '/payroll', label: 'Payroll', icon: Wallet },
+  { to: '/documents', label: 'Documents', icon: Files },
 ]
 
 const ROLE_LABEL = {

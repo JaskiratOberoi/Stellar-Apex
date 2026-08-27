@@ -78,7 +78,7 @@ function RosterPulse({ counts, status, setStatus }) {
 
         <div className="flex-1 min-w-56">
           {/* Proportional status bar */}
-          <div className="flex h-2.5 rounded-full overflow-hidden bg-slate-soft">
+          <div className="flex h-2.5 gap-[2px]">
             {PULSE.map(({ id, seg }) => {
               const n = counts[id] ?? 0
               if (!n) return null
@@ -89,7 +89,7 @@ function RosterPulse({ counts, status, setStatus }) {
                   title={`${STATUSES[id].label}: ${n}`}
                   className={cx(
                     seg,
-                    'cursor-pointer transition-all duration-300 first:rounded-l-full last:rounded-r-full',
+                    'cursor-pointer transition-all duration-300 rounded-[3px] first:rounded-l-full last:rounded-r-full',
                     status !== 'all' && status !== id && 'opacity-25',
                   )}
                   style={{ flexGrow: n, minWidth: 6 }}

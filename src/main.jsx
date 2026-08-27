@@ -10,6 +10,10 @@ import Directory from './pages/Directory'
 import Profile from './pages/Profile'
 import AddEmployee from './pages/AddEmployee'
 import OrgChart from './pages/OrgChart'
+import Dashboard from './pages/Dashboard'
+import Attendance from './pages/Attendance'
+import Payroll from './pages/Payroll'
+import Documents from './pages/Documents'
 
 const router = createBrowserRouter([
   {
@@ -20,6 +24,10 @@ const router = createBrowserRouter([
       { path: '/people/new', element: <AddEmployee /> },
       { path: '/people/:id', element: <Profile /> },
       { path: '/org', element: <OrgChart /> },
+      { path: '/dashboard', element: <Dashboard /> },
+      { path: '/attendance', element: <Attendance /> },
+      { path: '/payroll', element: <Payroll /> },
+      { path: '/documents', element: <Documents /> },
       { path: '*', element: <Navigate to="/people" replace /> },
     ],
   },
