@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react'
 import { STATUSES } from '../data/seed'
 import { avatarTone, cx, initials } from '../lib/utils'
 
-/* ---------------- Avatar ---------------- */
+/* ---------------- Avatar — squircle, not circle ---------------- */
 export function Avatar({ name, photo, size = 40, className }) {
   const [bg, fg] = avatarTone(name)
-  const style = { width: size, height: size, fontSize: size * 0.36 }
+  const style = { width: size, height: size, fontSize: size * 0.34, borderRadius: size * 0.3 }
   if (photo) {
     return (
       <img
         src={photo}
         alt={name}
         style={style}
-        className={cx('rounded-full object-cover shrink-0 ring-1 ring-black/[0.06]', className)}
+        className={cx('object-cover shrink-0 ring-1 ring-black/[0.07]', className)}
       />
     )
   }
@@ -21,7 +21,7 @@ export function Avatar({ name, photo, size = 40, className }) {
     <div
       style={{ ...style, background: bg, color: fg }}
       className={cx(
-        'rounded-full shrink-0 grid place-items-center font-semibold tracking-wide select-none ring-1 ring-black/[0.06]',
+        'shrink-0 grid place-items-center font-display font-bold tracking-wide select-none ring-1 ring-black/[0.07]',
         className,
       )}
     >
@@ -30,12 +30,12 @@ export function Avatar({ name, photo, size = 40, className }) {
   )
 }
 
-/* ---------------- Status pill ---------------- */
-const TONE_CLASSES = {
-  mint: 'bg-mint-soft text-mint',
-  amber: 'bg-amber-soft text-amber-ink',
-  rose: 'bg-rose-soft text-rose-ink',
-  slate: 'bg-slate-soft text-ink-soft',
+/* ---------------- Status mark — quiet dot + label ---------------- */
+const TONE_TEXT = {
+  mint: 'text-mint',
+  amber: 'text-amber-ink',
+  rose: 'text-rose-ink',
+  slate: 'text-ink-faint',
 }
 
 export function StatusPill({ status, className }) {
@@ -43,8 +43,8 @@ export function StatusPill({ status, className }) {
   return (
     <span
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ring-current/10',
-        TONE_CLASSES[s.tone],
+        'inline-flex items-center gap-1.5 text-[12px] font-semibold whitespace-nowrap',
+        TONE_TEXT[s.tone],
         className,
       )}
     >
@@ -62,7 +62,7 @@ export function SectionCard({ title, action, children, className }) {
     >
       {title && (
         <header className="flex items-center justify-between px-5 pt-4 pb-1">
-          <h3 className="font-display text-[15px] font-semibold">{title}</h3>
+          <h3 className="font-display text-[15px] font-bold tracking-tight">{title}</h3>
           {action}
         </header>
       )}
@@ -137,10 +137,16 @@ export function MaskedValue({ masked, revealed, onReveal }) {
         type="button"
         onClick={toggle}
         disabled={loading}
-        className="text-ink-faint hover:text-iris transition-colors cursor-pointer disabled:opacity-50"
+        className="text-ink-faint hover:text-accent transition-colors cursor-pointer disabled:opacity-50"
         title={show ? 'Hide' : 'Reveal'}
       >
-        {loading ? <Loader2 size={13} className="animate-spin" /> : show ? <EyeOff size={13} /> : <Eye size={13} />}
+        {loading ? (
+          <CircleNotch size={13} className="animate-spin" />
+        ) : show ? (
+          <EyeSlash size={13} />
+        ) : (
+          <Eye size={13} />
+        )}
       </button>
     </span>
   )
@@ -167,7 +173,7 @@ export function ProgressRing({ pct, size = 44 }) {
           strokeDashoffset={c * (1 - pct / 100)}
         />
       </svg>
-      <span className="absolute text-[11px] font-bold" style={{ color: tone }}>
+      <span className="absolute text-[11px] font-bold font-mono" style={{ color: tone }}>
         {pct}
       </span>
     </div>
@@ -178,8 +184,12 @@ export function ProgressRing({ pct, size = 44 }) {
 export function EmptyState({ icon: Icon, title, hint }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      {Icon && <Icon size={28} className="text-ink-faint mb-3" />}
-      <p className="font-display font-semibold text-[15px]">{title}</p>
+      {Icon && (
+        <span className="grid place-items-center size-11 rounded-xl bg-slate-soft text-ink-faint mb-3">
+          <Icon size={22} />
+        </span>
+      )}
+      <p className="font-display font-bold text-[15px] tracking-tight">{title}</p>
       {hint && <p className="text-[13px] text-ink-faint mt-1">{hint}</p>}
     </div>
   )

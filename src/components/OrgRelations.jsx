@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, CornerRightUp, Plus, UserRoundMinus, UsersRound } from 'lucide-react'
+import { ArrowElbowRightUp, CaretDown, Plus, UserMinus, UsersThree } from '@phosphor-icons/react'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
 import { ancestorIds, buildForest, descendantIds } from '../lib/org'
@@ -58,14 +58,14 @@ export default function OrgRelations({ employee }) {
   const removeReportee = (id) => updateEmployee({ id, reportsTo: null })
 
   const selectCls =
-    'w-full h-9 appearance-none rounded-xl border border-hairline bg-surface pl-3 pr-8 text-[13px] font-medium outline-none cursor-pointer focus:border-iris focus:ring-2 focus:ring-iris/15'
+    'w-full h-9 appearance-none rounded-[10px] border border-hairline bg-surface pl-3 pr-8 text-[13px] font-medium outline-none cursor-pointer focus:border-accent focus:ring-2 focus:ring-accent/15'
 
   return (
     <SectionCard title="Reporting" className="lg:col-span-1">
       {/* Reports to */}
       <div>
         <p className="flex items-center gap-1.5 text-[11.5px] uppercase tracking-[0.1em] text-ink-faint font-semibold mb-2">
-          <CornerRightUp size={13} /> Reports to
+          <ArrowElbowRightUp size={13} /> Reports to
         </p>
         <div className="relative">
           <select
@@ -73,14 +73,14 @@ export default function OrgRelations({ employee }) {
             onChange={(e) => setManager(e.target.value)}
             className={cx(selectCls, !employee.reportsTo && 'text-ink-faint')}
           >
-            <option value="">— No manager (top level) —</option>
+            <option value="">No manager (top level)</option>
             {managerOptions.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name} · {m.designation}
               </option>
             ))}
           </select>
-          <ChevronDown
+          <CaretDown
             size={14}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-faint"
           />
@@ -88,7 +88,7 @@ export default function OrgRelations({ employee }) {
         {manager && (
           <Link
             to={`/people/${manager.id}`}
-            className="flex items-center gap-2.5 mt-2 rounded-xl border border-hairline p-2 hover:border-iris/40 transition-colors"
+            className="flex items-center gap-2.5 mt-2 rounded-xl border border-hairline p-2 hover:border-accent/40 transition-colors"
           >
             <Avatar name={manager.name} size={30} />
             <div className="min-w-0">
@@ -102,7 +102,7 @@ export default function OrgRelations({ employee }) {
       {/* Manages (reportees) */}
       <div className="mt-5">
         <p className="flex items-center gap-1.5 text-[11.5px] uppercase tracking-[0.1em] text-ink-faint font-semibold mb-2">
-          <UsersRound size={13} /> Manages
+          <UsersThree size={13} /> Manages
           <span className="text-ink-faint/70 normal-case tracking-normal">· {reports.length}</span>
         </p>
 
@@ -116,7 +116,7 @@ export default function OrgRelations({ employee }) {
                 <Link to={`/people/${r.id}`} className="flex items-center gap-2.5 min-w-0 flex-1">
                   <Avatar name={r.name} size={28} />
                   <div className="min-w-0">
-                    <p className="text-[12.5px] font-medium truncate hover:text-iris-text">
+                    <p className="text-[12.5px] font-medium truncate hover:text-accent-text">
                       {r.name}
                     </p>
                     <p className="text-[11px] text-ink-faint truncate">{r.designation}</p>
@@ -127,7 +127,7 @@ export default function OrgRelations({ employee }) {
                   className="p-1.5 rounded-lg text-ink-faint hover:text-rose-ink hover:bg-rose-soft transition-colors cursor-pointer shrink-0"
                   title="Remove as report"
                 >
-                  <UserRoundMinus size={14} />
+                  <UserMinus size={14} />
                 </button>
               </div>
             ))}
@@ -153,9 +153,9 @@ export default function OrgRelations({ employee }) {
             </select>
             <Plus
               size={14}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-iris"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-accent"
             />
-            <ChevronDown
+            <CaretDown
               size={14}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-ink-faint"
             />

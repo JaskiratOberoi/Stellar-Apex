@@ -1,19 +1,18 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
-  ArrowLeftRight,
-  CalendarClock,
-  FileText,
-  LayoutGrid,
-  Menu,
-  Network,
+  ArrowsLeftRight,
+  CalendarCheck,
+  Files,
+  List,
+  MagnifyingGlass,
   Plus,
-  Search,
   ShieldCheck,
-  Sparkles,
-  UsersRound,
+  SquaresFour,
+  TreeStructure,
+  UsersThree,
   Wallet,
   X,
-} from 'lucide-react'
+} from '@phosphor-icons/react'
 import { useState } from 'react'
 import { cx } from '../lib/utils'
 import { useEntity } from '../store/EntityContext'
@@ -23,12 +22,12 @@ import PortalPicker from '../pages/PortalPicker'
 import Login from '../pages/Login'
 
 const NAV = [
-  { to: '/people', label: 'People', icon: UsersRound },
-  { to: '/org', label: 'Org chart', icon: Network },
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutGrid, soon: true },
-  { to: '/attendance', label: 'Attendance', icon: CalendarClock, soon: true },
+  { to: '/people', label: 'People', icon: UsersThree },
+  { to: '/org', label: 'Org chart', icon: TreeStructure },
+  { to: '/dashboard', label: 'Dashboard', icon: SquaresFour, soon: true },
+  { to: '/attendance', label: 'Attendance', icon: CalendarCheck, soon: true },
   { to: '/payroll', label: 'Payroll', icon: Wallet, soon: true },
-  { to: '/documents', label: 'Documents', icon: FileText, soon: true },
+  { to: '/documents', label: 'Documents', icon: Files, soon: true },
 ]
 
 const ROLE_LABEL = {
@@ -45,31 +44,27 @@ function Rail({ onNavigate }) {
 
   return (
     <div className="relative flex flex-col h-full overflow-hidden">
-      {/* Aurora glow — decor only */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -top-24 -left-16 size-64 rounded-full bg-iris/25 blur-3xl"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -top-16 right-0 size-40 rounded-full bg-aurora/15 blur-3xl"
-      />
-
-      {/* Product brand */}
-      <div className="relative flex items-center gap-2.5 px-5 h-16 shrink-0">
-        <div className="size-8 rounded-lg bg-gradient-to-br from-iris to-aurora grid place-items-center text-white shadow-glow">
-          <Sparkles size={16} strokeWidth={2.5} />
+      {/* Product brand — typographic nameplate */}
+      <div className="flex items-center gap-3 px-5 h-[68px] shrink-0">
+        <div className="size-8 rounded-[10px] bg-surface grid place-items-center shrink-0">
+          <span className="font-display font-black text-[15px] text-rail leading-none translate-y-px">
+            S
+          </span>
         </div>
         <div className="leading-tight">
-          <p className="font-display font-bold text-[15px] text-white tracking-tight">Stellar Apex</p>
+          <p className="font-display font-bold text-[15px] text-white tracking-tight">
+            Stellar Apex
+          </p>
           <p className="text-[10.5px] text-rail-text uppercase tracking-[0.14em]">People OS</p>
         </div>
       </div>
 
+      <div className="mx-5 h-px bg-rail-line shrink-0" />
+
       {/* Active entity portal */}
-      <div className="px-3 pt-1">
+      <div className="px-3 pt-3">
         <div className="flex items-center gap-2.5 rounded-xl bg-rail-soft px-3 py-2.5">
-          <div className="size-8 rounded-lg grid place-items-center shrink-0 bg-white">
+          <div className="size-8 rounded-[10px] grid place-items-center shrink-0 bg-white">
             <Mark size={22} />
           </div>
           <div className="leading-tight min-w-0 flex-1">
@@ -81,20 +76,20 @@ function Rail({ onNavigate }) {
           </div>
           <button
             onClick={exitPortal}
-            className="p-1.5 rounded-lg text-rail-text hover:text-white hover:bg-rail transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-rail-text hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             title={canSwitch ? 'Switch portal' : 'Sign out'}
           >
-            <ArrowLeftRight size={13} />
+            <ArrowsLeftRight size={13} />
           </button>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="px-3 pt-4 flex-1">
+      {/* Nav — active item becomes a paper tab */}
+      <nav className="px-3 pt-5 flex-1">
         <p className="px-3 pb-2 text-[10.5px] uppercase tracking-[0.14em] text-rail-text/70">
           Workspace
         </p>
-        <ul className="space-y-0.5">
+        <ul className="space-y-1">
           {NAV.map(({ to, label, icon: Icon, soon }) => (
             <li key={to}>
               <NavLink
@@ -105,21 +100,25 @@ function Rail({ onNavigate }) {
                 }}
                 className={({ isActive }) =>
                   cx(
-                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all',
+                    'flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-all duration-200',
                     !soon && isActive
-                      ? 'bg-gradient-to-r from-iris to-iris-deep text-white shadow-glow'
+                      ? 'bg-paper text-ink shadow-card font-semibold'
                       : soon
-                        ? 'text-rail-text/50 cursor-default'
-                        : 'text-rail-text hover:bg-rail-soft hover:text-white',
+                        ? 'text-rail-text/45 cursor-default'
+                        : 'text-rail-text hover:bg-white/5 hover:text-white active:scale-[0.98]',
                   )
                 }
               >
-                <Icon size={17} strokeWidth={2} />
-                {label}
-                {soon && (
-                  <span className="ml-auto text-[9.5px] font-semibold uppercase tracking-wider rounded-full bg-rail-soft px-2 py-0.5">
-                    Soon
-                  </span>
+                {({ isActive }) => (
+                  <>
+                    <Icon size={17} weight={!soon && isActive ? 'fill' : 'regular'} />
+                    {label}
+                    {soon && (
+                      <span className="ml-auto text-[9.5px] font-semibold uppercase tracking-[0.1em] text-rail-text/60">
+                        Soon
+                      </span>
+                    )}
+                  </>
                 )}
               </NavLink>
             </li>
@@ -129,13 +128,17 @@ function Rail({ onNavigate }) {
 
       {/* Signed-in user */}
       <div className="p-3 shrink-0">
-        <div className="flex items-center gap-2.5 rounded-xl bg-rail-soft px-3 py-2.5">
-          <div className="size-[30px] rounded-full bg-rail grid place-items-center text-rail-text shrink-0">
-            <ShieldCheck size={15} />
+        <div className="flex items-center gap-2.5 rounded-xl border border-rail-line px-3 py-2.5">
+          <div className="size-[30px] rounded-[10px] bg-rail-soft grid place-items-center text-rail-text shrink-0">
+            <ShieldCheck size={15} weight="fill" />
           </div>
           <div className="leading-tight min-w-0">
-            <p className="text-[12.5px] font-semibold text-white truncate">{user?.name || 'Administrator'}</p>
-            <p className="text-[11px] text-rail-text truncate">{ROLE_LABEL[user?.role] || 'HR'} · {entity.name}</p>
+            <p className="text-[12.5px] font-semibold text-white truncate">
+              {user?.name || 'Administrator'}
+            </p>
+            <p className="text-[11px] text-rail-text truncate">
+              {ROLE_LABEL[user?.role] || 'HR'} · {entity.name}
+            </p>
           </div>
         </div>
       </div>
@@ -159,7 +162,7 @@ export default function AppLayout() {
   if (!entity) return <PortalPicker />
 
   return (
-    <div className="min-h-dvh flex">
+    <div className={cx('min-h-dvh flex', `portal-${entity.hue}`)}>
       {/* Desktop rail */}
       <aside className="hidden lg:block w-60 shrink-0 bg-rail sticky top-0 h-dvh">
         <Rail />
@@ -184,29 +187,32 @@ export default function AppLayout() {
 
       {/* Main column */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-16 shrink-0 sticky top-0 z-40 bg-paper/85 backdrop-blur border-b border-hairline flex items-center gap-3 px-4 sm:px-6">
+        <header className="h-[68px] shrink-0 sticky top-0 z-40 bg-paper/85 backdrop-blur border-b border-hairline flex items-center gap-3 px-4 sm:px-6">
           <button
             className="lg:hidden -ml-1 p-1.5 rounded-lg hover:bg-hairline/60"
             onClick={() => setMobileNav(true)}
             aria-label="Open menu"
           >
-            <Menu size={19} />
+            <List size={19} />
           </button>
 
           <div className="relative flex-1 max-w-md">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+            <MagnifyingGlass
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
+            />
             <input
               placeholder={`Search ${entity.name} people…`}
-              className="w-full h-9 rounded-xl border border-hairline bg-surface pl-9 pr-3 text-[13px] outline-none focus:border-iris focus:ring-2 focus:ring-iris/15 placeholder:text-ink-faint"
+              className="w-full h-9 rounded-[10px] border border-hairline bg-surface pl-9 pr-3 text-[13px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 placeholder:text-ink-faint transition-colors"
               onFocus={() => navigate('/people')}
             />
           </div>
 
           <button
             onClick={() => navigate('/people/new')}
-            className="ml-auto inline-flex items-center gap-1.5 h-9 rounded-xl bg-gradient-to-b from-iris to-iris-deep hover:brightness-110 text-white text-[13px] font-semibold px-3.5 shadow-glow transition-all cursor-pointer"
+            className="ml-auto inline-flex items-center gap-1.5 h-9 rounded-[10px] bg-accent hover:bg-accent-deep active:scale-[0.98] text-white text-[13px] font-semibold px-3.5 transition-all cursor-pointer"
           >
-            <Plus size={15} strokeWidth={2.5} />
+            <Plus size={15} weight="bold" />
             <span className="hidden sm:inline">Add employee</span>
           </button>
         </header>

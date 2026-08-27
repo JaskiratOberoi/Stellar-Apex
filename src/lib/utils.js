@@ -11,14 +11,14 @@ export const initials = (name) =>
     .map((w) => w[0].toUpperCase())
     .join('')
 
-/* Deterministic avatar hue per person */
+/* Deterministic avatar hue per person — muted, ledger-harmonised */
 const AVATAR_TONES = [
-  ['#ecebf9', '#4a48b5'],
-  ['#dff2ef', '#0e7a6d'],
-  ['#fbe9e4', '#c0442e'],
-  ['#f0e9f8', '#7d5ba6'],
-  ['#fcefd8', '#92590a'],
-  ['#e2f3ec', '#17805e'],
+  ['#e3e9e2', '#33523f'],
+  ['#e6e5f0', '#3c3a6e'],
+  ['#efe8d9', '#77571a'],
+  ['#eee4e2', '#8a4436'],
+  ['#e0eae9', '#22585c'],
+  ['#ece7ef', '#5d4470'],
 ]
 export const avatarTone = (name) => {
   let h = 0

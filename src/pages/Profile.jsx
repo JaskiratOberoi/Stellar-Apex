@@ -3,19 +3,18 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
-  BadgeCheck,
-  Banknote,
-  CalendarDays,
-  CircleAlert,
+  Bank,
+  EnvelopeSimple,
   FileText,
-  Landmark,
-  Mail,
   MapPin,
+  Money,
   Phone,
+  SealCheck,
   ShieldCheck,
-  UserRound,
-  UsersRound,
-} from 'lucide-react'
+  User,
+  UsersThree,
+  WarningCircle,
+} from '@phosphor-icons/react'
 import { DOCUMENT_TYPES } from '../data/seed'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
@@ -38,9 +37,9 @@ import {
 import OrgRelations from '../components/OrgRelations'
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: UserRound },
-  { id: 'job', label: 'Job & Org', icon: UsersRound },
-  { id: 'statutory', label: 'Statutory & Bank', icon: Landmark },
+  { id: 'overview', label: 'Overview', icon: User },
+  { id: 'job', label: 'Job & Org', icon: UsersThree },
+  { id: 'statutory', label: 'Statutory & Bank', icon: Bank },
   { id: 'documents', label: 'Documents', icon: FileText },
 ]
 
@@ -68,7 +67,7 @@ function Timeline({ e }) {
           <span
             className={cx(
               'absolute -left-[7px] top-1 size-3 rounded-full border-2 border-surface',
-              ev.tone === 'rose' ? 'bg-rose-ink' : ev.tone === 'slate' ? 'bg-ink-faint' : 'bg-iris',
+              ev.tone === 'rose' ? 'bg-rose-ink' : ev.tone === 'slate' ? 'bg-ink-faint' : 'bg-accent',
             )}
           />
           <p className="text-[13px] font-semibold leading-tight">{ev.label}</p>
@@ -86,9 +85,9 @@ function ComplianceRow({ label, ok, children }) {
     <div className="flex items-center justify-between gap-3 py-2.5 border-b border-hairline last:border-0">
       <div className="flex items-center gap-2.5 min-w-0">
         {ok ? (
-          <BadgeCheck size={16} className="text-mint shrink-0" />
+          <SealCheck size={16} weight="fill" className="text-mint shrink-0" />
         ) : (
-          <CircleAlert size={16} className="text-amber-ink shrink-0" />
+          <WarningCircle size={16} weight="fill" className="text-amber-ink shrink-0" />
         )}
         <span className="text-[13px] font-medium">{label}</span>
       </div>
@@ -117,8 +116,8 @@ export default function Profile() {
   if (!e || e.company !== entity.id) {
     return (
       <div className="max-w-3xl mx-auto text-center py-20">
-        <p className="font-display text-lg font-semibold">Employee not found</p>
-        <Link to="/people" className="text-iris-text text-[13px] font-medium mt-2 inline-block">
+        <p className="font-display text-lg font-bold tracking-tight">Employee not found</p>
+        <Link to="/people" className="text-accent-text text-[13px] font-medium mt-2 inline-block">
           ← Back to People
         </Link>
       </div>
@@ -141,14 +140,15 @@ export default function Profile() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
         className="bg-surface rounded-2xl border border-hairline shadow-card p-6"
       >
         <div className="flex flex-wrap items-start gap-5">
-          <Avatar name={e.name} photo={e.photo} size={72} />
+          <Avatar name={e.name} photo={e.photo} size={76} />
 
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="font-display text-[22px] font-bold tracking-tight">{e.name}</h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="font-display text-[26px] font-bold tracking-tight">{e.name}</h1>
               <StatusPill status={e.status} />
             </div>
             <p className="text-[14px] text-ink-soft mt-0.5">
@@ -159,7 +159,7 @@ export default function Profile() {
                 <MapPin size={12} /> {e.branch}
               </span>
               {isHQ && (
-                <span className="text-[9.5px] font-bold uppercase tracking-wider text-iris-text bg-iris-soft rounded px-1.5 py-0.5">
+                <span className="text-[9.5px] font-bold uppercase tracking-wider text-accent-text bg-accent-soft rounded px-1.5 py-0.5">
                   HQ
                 </span>
               )}
@@ -170,7 +170,10 @@ export default function Profile() {
 
           <div className="flex items-center gap-4">
             {/* Completeness — payroll readiness */}
-            <div className="flex items-center gap-2.5" title={comp.missing.length ? `Missing: ${comp.missing.join(', ')}` : 'Profile complete'}>
+            <div
+              className="flex items-center gap-2.5"
+              title={comp.missing.length ? `Missing: ${comp.missing.join(', ')}` : 'Profile complete'}
+            >
               <ProgressRing pct={comp.pct} />
               <div className="leading-tight hidden sm:block">
                 <p className="text-[12px] font-semibold">Profile</p>
@@ -183,14 +186,14 @@ export default function Profile() {
             <div className="flex gap-1.5">
               <a
                 href={`mailto:${e.email}`}
-                className="p-2.5 rounded-xl border border-hairline text-ink-soft hover:text-iris hover:border-iris/40 transition-colors"
+                className="p-2.5 rounded-[10px] border border-hairline text-ink-soft hover:text-accent hover:border-accent/40 active:scale-95 transition-all"
                 title={e.email}
               >
-                <Mail size={16} />
+                <EnvelopeSimple size={16} />
               </a>
               <a
                 href={`tel:${e.mobile}`}
-                className="p-2.5 rounded-xl border border-hairline text-ink-soft hover:text-iris hover:border-iris/40 transition-colors"
+                className="p-2.5 rounded-[10px] border border-hairline text-ink-soft hover:text-accent hover:border-accent/40 active:scale-95 transition-all"
                 title={e.mobile}
               >
                 <Phone size={16} />
@@ -206,11 +209,11 @@ export default function Profile() {
               key={tid}
               onClick={() => setTab(tid)}
               className={cx(
-                'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-colors cursor-pointer',
-                tab === tid ? 'bg-iris-soft text-iris-text' : 'text-ink-faint hover:text-ink',
+                'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap transition-colors cursor-pointer',
+                tab === tid ? 'bg-accent-soft text-accent-text' : 'text-ink-faint hover:text-ink',
               )}
             >
-              <Icon size={14.5} />
+              <Icon size={14.5} weight={tab === tid ? 'fill' : 'regular'} />
               {label}
             </button>
           ))}
@@ -319,7 +322,7 @@ export default function Profile() {
               <ComplianceRow label="Aadhaar" ok={!!e.aadhaar}>
                 <MaskedValue masked={e.aadhaar} onReveal={async () => groupAadhaar(await reveal(e.id, 'aadhaar'))} />
               </ComplianceRow>
-              <ComplianceRow label="PF — UAN" ok={!!e.uan || ['Consultant', 'Intern'].includes(e.employmentType)}>
+              <ComplianceRow label="PF · UAN" ok={!!e.uan || ['Consultant', 'Intern'].includes(e.employmentType)}>
                 {e.uan ? (
                   <MaskedValue masked={`••••••${e.uan.slice(-4)}`} revealed={e.uan} />
                 ) : ['Consultant', 'Intern'].includes(e.employmentType) ? (
@@ -339,7 +342,7 @@ export default function Profile() {
 
             <SectionCard title="Bank & payment">
               <p className="text-[12px] text-ink-faint -mt-1 mb-2 flex items-center gap-1.5">
-                <Banknote size={13} /> Salary account
+                <Money size={13} /> Salary account
               </p>
               <dl>
                 <FieldRow label="Account name">{e.bank?.accountName}</FieldRow>
@@ -356,7 +359,7 @@ export default function Profile() {
         {tab === 'documents' && (
           <SectionCard title="Document vault" className="lg:col-span-3">
             <p className="text-[12px] text-ink-faint -mt-1 mb-3">
-              Uploads land in Phase 2 — this checklist tracks what has been collected.
+              Uploads land in Phase 2. This checklist tracks what has been collected.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {DOCUMENT_TYPES.map((d, i) => {
@@ -369,11 +372,11 @@ export default function Profile() {
                   >
                     <div
                       className={cx(
-                        'size-9 rounded-lg grid place-items-center shrink-0',
+                        'size-9 rounded-[10px] grid place-items-center shrink-0',
                         collected ? 'bg-mint-soft text-mint' : 'bg-amber-soft text-amber-ink',
                       )}
                     >
-                      <FileText size={16} />
+                      <FileText size={16} weight={collected ? 'fill' : 'regular'} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium truncate">{d.label}</p>

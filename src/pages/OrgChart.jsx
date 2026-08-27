@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  ChevronDown,
-  ChevronsDownUp,
-  ChevronsUpDown,
+  ArrowsInLineVertical,
+  ArrowsOutLineVertical,
+  CaretRight,
   Minus,
   Plus,
-  UserRoundPlus,
-  UsersRound,
-} from 'lucide-react'
+  UserPlus,
+  UsersThree,
+} from '@phosphor-icons/react'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
 import { buildForest, forestDepth } from '../lib/org'
@@ -25,12 +25,12 @@ function Node({ e, childrenOf, collapsed, onToggle, onOpen, isHQ }) {
     <li>
       <div
         onClick={() => onOpen(e)}
-        className="group relative w-[186px] bg-surface rounded-2xl border border-hairline shadow-card px-3.5 py-3 cursor-pointer hover:border-iris/50 hover:shadow-pop transition-all"
+        className="group relative w-[186px] bg-surface rounded-2xl border border-hairline shadow-card px-3.5 py-3 cursor-pointer hover:border-accent/40 hover:shadow-pop transition-all"
       >
         <div className="flex items-center gap-2.5">
           <Avatar name={e.name} photo={e.photo} size={38} />
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate group-hover:text-iris-text">
+            <p className="text-[13px] font-semibold truncate group-hover:text-accent-text">
               {e.name}
             </p>
             <p className="text-[11.5px] text-ink-faint truncate">{e.designation}</p>
@@ -49,14 +49,14 @@ function Node({ e, childrenOf, collapsed, onToggle, onOpen, isHQ }) {
               onToggle(e.id)
             }}
             className={cx(
-              'absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 h-6 rounded-full border px-2 text-[10.5px] font-semibold transition-colors cursor-pointer',
+              'absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 h-6 rounded-full border px-2 text-[10.5px] font-semibold font-mono transition-colors cursor-pointer',
               isCollapsed
-                ? 'bg-iris text-white border-iris'
-                : 'bg-surface text-ink-soft border-hairline-strong hover:border-iris hover:text-iris',
+                ? 'bg-accent text-white border-accent'
+                : 'bg-surface text-ink-soft border-hairline-strong hover:border-accent hover:text-accent',
             )}
             title={isCollapsed ? 'Expand reports' : 'Collapse reports'}
           >
-            {isCollapsed ? <Plus size={11} strokeWidth={3} /> : <Minus size={11} strokeWidth={3} />}
+            {isCollapsed ? <Plus size={11} weight="bold" /> : <Minus size={11} weight="bold" />}
             {reports.length}
           </button>
         )}
@@ -116,7 +116,7 @@ export default function OrgChart() {
       {/* heading */}
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display text-[26px] font-bold tracking-tight">Org chart</h1>
+          <h1 className="font-display text-[28px] font-bold tracking-tight">Org chart</h1>
           <p className="text-[13px] text-ink-faint mt-0.5">
             {entity.legalName} · {roster.length} {roster.length === 1 ? 'person' : 'people'}
             {roster.length > 0 && ` · ${depth} ${depth === 1 ? 'level' : 'levels'}`}
@@ -127,15 +127,15 @@ export default function OrgChart() {
           <div className="flex items-center gap-2">
             <button
               onClick={expandAll}
-              className="inline-flex items-center gap-1.5 h-9 rounded-xl border border-hairline bg-surface px-3 text-[13px] font-medium text-ink-soft hover:border-hairline-strong transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-9 rounded-[10px] border border-hairline bg-surface px-3 text-[13px] font-medium text-ink-soft hover:border-hairline-strong active:scale-[0.98] transition-all cursor-pointer"
             >
-              <ChevronsUpDown size={15} /> Expand all
+              <ArrowsOutLineVertical size={15} /> Expand all
             </button>
             <button
               onClick={collapseAll}
-              className="inline-flex items-center gap-1.5 h-9 rounded-xl border border-hairline bg-surface px-3 text-[13px] font-medium text-ink-soft hover:border-hairline-strong transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-9 rounded-[10px] border border-hairline bg-surface px-3 text-[13px] font-medium text-ink-soft hover:border-hairline-strong active:scale-[0.98] transition-all cursor-pointer"
             >
-              <ChevronsDownUp size={15} /> Collapse all
+              <ArrowsInLineVertical size={15} /> Collapse all
             </button>
           </div>
         )}
@@ -145,21 +145,23 @@ export default function OrgChart() {
       {roster.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-hairline shadow-card mt-5">
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <UsersRound size={28} className="text-ink-faint mb-3" />
-            <p className="font-display font-semibold text-[15px]">No org chart yet</p>
+            <span className="grid place-items-center size-11 rounded-xl bg-accent-soft text-accent-text mb-3">
+              <UsersThree size={22} />
+            </span>
+            <p className="font-display font-bold text-[15px] tracking-tight">No org chart yet</p>
             <p className="text-[13px] text-ink-faint mt-1 max-w-xs">
-              Add employees and set who they report to — the chart builds itself.
+              Add employees and set who they report to. The chart builds itself.
             </p>
             <button
               onClick={() => navigate('/people/new')}
-              className="mt-4 inline-flex items-center gap-1.5 h-9 rounded-xl bg-iris hover:bg-iris-deep text-white text-[13px] font-semibold px-4 transition-colors cursor-pointer"
+              className="mt-4 inline-flex items-center gap-1.5 h-9 rounded-[10px] bg-accent hover:bg-accent-deep active:scale-[0.98] text-white text-[13px] font-semibold px-4 transition-all cursor-pointer"
             >
-              <UserRoundPlus size={15} strokeWidth={2.5} /> Add employee
+              <UserPlus size={15} weight="bold" /> Add employee
             </button>
           </div>
         </div>
       ) : (
-        <div className="mt-5 bg-surface/40 rounded-2xl border border-hairline p-6 overflow-auto">
+        <div className="mt-5 rounded-2xl border border-hairline bg-surface/50 p-6 overflow-auto">
           <div className="org-tree min-w-max mx-auto w-fit">
             <ul>
               {roots.map((r) => (
@@ -180,7 +182,7 @@ export default function OrgChart() {
 
       {roots.length > 1 && roster.length > 0 && (
         <p className="text-[12px] text-ink-faint mt-3 flex items-center gap-1.5">
-          <ChevronDown size={13} className="rotate-[-90deg]" />
+          <CaretRight size={13} />
           {roots.length} top-level people (no manager assigned). Set a “Reports to” on a
           profile to place someone under another.
         </p>

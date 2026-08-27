@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Check, UserRoundPlus } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, UserPlus } from '@phosphor-icons/react'
 import { BLOOD_GROUPS, DEPARTMENTS, EMPLOYMENT_TYPES } from '../data/seed'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
@@ -24,7 +24,7 @@ function Field({ label, required, hint, children, className }) {
 }
 
 const inputCls =
-  'w-full h-10 rounded-xl border border-hairline bg-surface px-3 text-[13.5px] outline-none focus:border-iris focus:ring-2 focus:ring-iris/15 placeholder:text-ink-faint'
+  'w-full h-10 rounded-[10px] border border-hairline bg-surface px-3 text-[13.5px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 placeholder:text-ink-faint'
 
 function TextInput(props) {
   return <input {...props} className={cx(inputCls, props.className)} />
@@ -162,13 +162,13 @@ export default function AddEmployee() {
       </button>
 
       <div className="flex items-center gap-3 mb-6">
-        <div className="size-10 rounded-xl bg-iris-soft text-iris-text grid place-items-center">
-          <UserRoundPlus size={19} />
+        <div className="size-10 rounded-xl bg-accent-soft text-accent-text grid place-items-center">
+          <UserPlus size={19} />
         </div>
         <div>
-          <h1 className="font-display text-[22px] font-bold tracking-tight">Add employee</h1>
+          <h1 className="font-display text-[24px] font-bold tracking-tight">Add employee</h1>
           <p className="text-[12.5px] text-ink-faint">
-            New joiners start on probation — statutory details can be completed later.
+            New joiners start on probation. Statutory details can be completed later.
           </p>
         </div>
       </div>
@@ -181,7 +181,7 @@ export default function AddEmployee() {
               onClick={() => i < step && setStep(i)}
               className={cx(
                 'flex items-center gap-2 text-[12.5px] font-semibold whitespace-nowrap',
-                i <= step ? 'text-iris-text' : 'text-ink-faint',
+                i <= step ? 'text-accent-text' : 'text-ink-faint',
                 i < step && 'cursor-pointer',
               )}
             >
@@ -189,13 +189,13 @@ export default function AddEmployee() {
                 className={cx(
                   'size-6 rounded-full grid place-items-center text-[11px] border-2',
                   i < step
-                    ? 'bg-iris border-iris text-white'
+                    ? 'bg-accent border-accent text-white'
                     : i === step
-                      ? 'border-iris text-iris-text'
+                      ? 'border-accent text-accent-text'
                       : 'border-hairline-strong text-ink-faint',
                 )}
               >
-                {i < step ? <Check size={12} strokeWidth={3} /> : i + 1}
+                {i < step ? <Check size={12} weight="bold" /> : i + 1}
               </span>
               <span className="hidden sm:inline">{s}</span>
             </button>
@@ -265,8 +265,8 @@ export default function AddEmployee() {
         {step === 1 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <p className="sm:col-span-2 text-[12.5px] text-ink-soft -mb-1">
-              Joining <span className="font-semibold">{entity.legalName}</span> — employee code
-              will be <span className="font-mono text-[11.5px] text-iris-text">{code}</span>
+              Joining <span className="font-semibold">{entity.legalName}</span> · employee code
+              will be <span className="font-mono text-[11.5px] text-accent-text">{code}</span>
             </p>
             <Field label="Branch / Lab" required>
               <Select
@@ -275,7 +275,7 @@ export default function AddEmployee() {
                 placeholder="Select branch"
                 options={entity.branches.map((b) => ({
                   value: b,
-                  label: b === entity.headOffice ? `${b} — Head Office` : b,
+                  label: b === entity.headOffice ? `${b} · Head Office` : b,
                 }))}
               />
             </Field>
@@ -296,7 +296,7 @@ export default function AddEmployee() {
                 value={f.reportsTo}
                 onChange={set('reportsTo')}
                 placeholder="Select manager"
-                options={managers.map((m) => ({ value: m.id, label: `${m.name} — ${m.designation}` }))}
+                options={managers.map((m) => ({ value: m.id, label: `${m.name} · ${m.designation}` }))}
               />
             </Field>
             <Field label="Work email">
@@ -308,7 +308,7 @@ export default function AddEmployee() {
         {step === 2 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <p className="sm:col-span-2 text-[12.5px] text-ink-faint -mb-1">
-              All optional at this stage — the profile completeness meter will flag anything missing
+              All optional at this stage. The profile completeness meter will flag anything missing
               before payroll.
             </p>
             <Field label="Aadhaar number">
@@ -388,7 +388,7 @@ export default function AddEmployee() {
       <div className="flex items-center justify-between mt-4">
         <button
           onClick={() => (step === 0 ? navigate('/people') : setStep(step - 1))}
-          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-hairline bg-surface text-[13px] font-semibold text-ink-soft hover:border-hairline-strong transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] border border-hairline bg-surface text-[13px] font-semibold text-ink-soft hover:border-hairline-strong transition-colors cursor-pointer"
         >
           <ArrowLeft size={14} /> {step === 0 ? 'Cancel' : 'Back'}
         </button>
@@ -396,13 +396,13 @@ export default function AddEmployee() {
           disabled={!stepValid || saving}
           onClick={() => (step === STEPS.length - 1 ? submit() : setStep(step + 1))}
           className={cx(
-            'inline-flex items-center gap-1.5 h-10 px-5 rounded-xl text-[13px] font-semibold text-white transition-colors',
-            stepValid && !saving ? 'bg-iris hover:bg-iris-deep cursor-pointer' : 'bg-ink-faint/40 cursor-not-allowed',
+            'inline-flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[13px] font-semibold text-white transition-colors',
+            stepValid && !saving ? 'bg-accent hover:bg-accent-deep cursor-pointer' : 'bg-ink-faint/40 cursor-not-allowed',
           )}
         >
           {step === STEPS.length - 1 ? (
             <>
-              <Check size={15} strokeWidth={2.5} /> {saving ? 'Saving…' : 'Create employee'}
+              <Check size={15} weight="bold" /> {saving ? 'Saving…' : 'Create employee'}
             </>
           ) : (
             <>
