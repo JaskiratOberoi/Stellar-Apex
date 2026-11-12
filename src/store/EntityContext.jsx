@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { COMPANIES } from '../data/seed'
 import { useAuth } from './AuthContext'
 import { getChosenEntity, setChosenEntity, clearChosenEntity } from '../lib/api'
@@ -64,4 +64,18 @@ export const useEntity = () => {
   const ctx = useContext(EntityContext)
   if (!ctx) throw new Error('useEntity must be used inside <EntityProvider>')
   return ctx
+}
+
+/**
+ * Keeps the last active entity available to everything inside it.
+ * When someone signs out or switches portal, the app shell stays mounted for
+ * its exit animation while the real entity is already null; without this,
+ * every screen reading `entity.id` during that moment would crash.
+ */
+export function HoldEntity({ children }) {
+  const ctx = useEntity()
+  const last = useRef(ctx.entity)
+  if (ctx.entity) last.current = ctx.entity
+  const value = useMemo(() => ({ ...ctx, entity: ctx.entity ?? last.current }), [ctx])
+  return <EntityContext.Provider value={value}>{children}</EntityContext.Provider>
 }

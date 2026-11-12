@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
+  ArrowsClockwise,
   CalendarCheck,
   CalendarStar,
   CheckCircle,
@@ -58,6 +59,9 @@ const STATUS = {
 }
 const CODES = Object.keys(STATUS)
 const KEY_TO_CODE = Object.fromEntries(CODES.map((c) => [STATUS[c].key, c]))
+// Click order in "Cycle" mode: blank, then every status, then blank again.
+const CYCLE = [null, ...CODES]
+const nextInCycle = (status) => CYCLE[(CYCLE.indexOf(status ?? null) + 1) % CYCLE.length]
 const WEEKDAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 // Loose spellings accepted on import.
@@ -363,7 +367,8 @@ export default function Attendance() {
   const [marks, setMarks] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [brush, setBrush] = useState('P')
+  const [brush, setBrush] = useState('CYCLE') // 'CYCLE' | a status code | 'CLEAR'
+  const [markAll, setMarkAll] = useState(null) // 'P' | 'A' while its confirmation is open
   const [branch, setBranch] = useState('')
   const [department, setDepartment] = useState('')
   const [q, setQ] = useState('')
@@ -375,6 +380,7 @@ export default function Attendance() {
   const queue = useRef(new Map())
   const timer = useRef(null)
   const painting = useRef(false)
+  const dragStatus = useRef(null) // what a drag paints; set by the cell the drag started on
   const gridRef = useRef(null)
 
   const editable = canEdit(user)
@@ -513,14 +519,19 @@ export default function Attendance() {
     if (!writable) return
     painting.current = true
     press(c.el)
-    paint(c.r, c.d, brush === 'CLEAR' ? null : brush)
+    // Cycle mode: each click moves the cell to its next state, and dragging on
+    // from there spreads that state. Otherwise the chosen status is painted.
+    const emp = employees[c.r]
+    const current = emp ? marks[emp.id]?.[dayISO(month, c.d)] ?? null : null
+    dragStatus.current = brush === 'CYCLE' ? nextInCycle(current) : brush === 'CLEAR' ? null : brush
+    paint(c.r, c.d, dragStatus.current)
   }
   const onPointerOver = (e) => {
     if (!painting.current) return
     const c = cellFrom(e.target)
     if (!c) return
     press(c.el)
-    paint(c.r, c.d, brush === 'CLEAR' ? null : brush)
+    paint(c.r, c.d, dragStatus.current)
   }
   useEffect(() => {
     const up = () => (painting.current = false)
@@ -553,7 +564,7 @@ export default function Attendance() {
     if (!writable || d.off) return
     const list = employees
       .filter((e) => inRange(e, d.date) && !marks[e.id]?.[d.date])
-      .map((e) => ({ employeeId: e.id, date: d.date, status: brush === 'CLEAR' ? 'P' : brush }))
+      .map((e) => ({ employeeId: e.id, date: d.date, status: brush === 'CLEAR' || brush === 'CYCLE' ? 'P' : brush }))
     applyCells(list)
     if (list.length) toast.success(`Marked ${list.length} on the ${d.day}${['th', 'st', 'nd', 'rd'][d.day % 10 > 3 || (d.day > 10 && d.day < 14) ? 0 : d.day % 10]}`)
   }
@@ -567,6 +578,24 @@ export default function Attendance() {
     }
     applyCells(list)
     toast.success(list.length ? `Marked ${list.length} blank days present` : 'No blank days to fill')
+  }
+
+  // Every working day (not a weekly off or holiday) for the people shown.
+  const workingCells = useMemo(() => {
+    const list = []
+    for (const e of employees) {
+      for (const d of days) {
+        if (d.fallback || !inRange(e, d.date)) continue
+        list.push({ employeeId: e.id, date: d.date, current: marks[e.id]?.[d.date] ?? null })
+      }
+    }
+    return list
+  }, [employees, days, marks])
+  const applyMarkAll = () => {
+    const list = workingCells.filter((c) => c.current !== markAll).map((c) => ({ employeeId: c.employeeId, date: c.date, status: markAll }))
+    applyCells(list)
+    toast.success(list.length ? `Marked ${list.length} days ${STATUS[markAll].label.toLowerCase()}` : `Every working day is already ${STATUS[markAll].label.toLowerCase()}`)
+    setMarkAll(null)
   }
 
   const importCells = async (cells) => {
@@ -733,7 +762,20 @@ export default function Attendance() {
       {/* brush palette */}
       {writable && (
         <div className="mt-3 flex items-center gap-1.5 flex-wrap">
-          <span className="text-[11.5px] uppercase tracking-[0.1em] font-semibold text-ink-faint mr-1">Mark as</span>
+          <span className="text-[11.5px] uppercase tracking-[0.1em] font-semibold text-ink-faint mr-1">Click to</span>
+          <button
+            type="button"
+            aria-pressed={brush === 'CYCLE'}
+            onClick={() => setBrush('CYCLE')}
+            title="Each click moves a day to its next status"
+            className={cx(
+              'inline-flex items-center gap-1.5 h-8 rounded-lg px-2.5 text-[12px] font-semibold cursor-pointer border transition-[background-color,border-color,transform] duration-[var(--dur-fast)] active:scale-95',
+              brush === 'CYCLE' ? 'border-ink bg-surface-high shadow-card' : 'border-transparent text-ink-soft hover:bg-slate-soft',
+            )}
+          >
+            <ArrowsClockwise size={14} /> Cycle
+          </button>
+          <span className="text-[11.5px] text-ink-faint mx-0.5">or set</span>
           {CODES.map((c) => (
             <button
               key={c}
@@ -762,11 +804,21 @@ export default function Attendance() {
           >
             <Eraser size={14} /> Clear
           </button>
-          {summary.unmarked > 0 && (
-            <Button size="sm" variant="ghost" className="ml-auto" onClick={fillBlanks}>
-              Fill {employees.length !== data.employees.length ? 'shown ' : ''}blanks as present
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+            {summary.unmarked > 0 && (
+              <Button size="sm" variant="ghost" onClick={fillBlanks}>
+                Fill blanks as present
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" onClick={() => setMarkAll('P')} disabled={!workingCells.length}>
+              <span className={cx('grid place-items-center size-5 rounded-[5px] text-[9.5px] font-mono font-bold', STATUS.P.cell)}>P</span>
+              All present
             </Button>
-          )}
+            <Button size="sm" variant="secondary" onClick={() => setMarkAll('A')} disabled={!workingCells.length}>
+              <span className={cx('grid place-items-center size-5 rounded-[5px] text-[9.5px] font-mono font-bold', STATUS.A.cell)}>A</span>
+              All absent
+            </Button>
+          </div>
         </div>
       )}
 
@@ -838,7 +890,8 @@ export default function Attendance() {
       </div>
       {writable && employees.length > 0 && (
         <p className="text-[12px] text-ink-faint mt-2.5">
-          Click or drag across days to mark them. Arrow keys move; press P, A, D (half day), L (paid leave), U (unpaid), W or H to mark; Backspace clears.
+          Click a day to step through its statuses, or pick one status and click or drag to set it. Arrow keys move; press P, A, D (half day), L (paid leave),
+          U (unpaid), W or H to mark; Backspace clears.
           Faded days are the weekly off and holidays, applied automatically.
         </p>
       )}
@@ -868,6 +921,34 @@ export default function Attendance() {
             <span className="font-semibold text-ink">{summary.lop} loss-of-pay days</span> in total. An admin can unlock it until payroll is finalised.
           </>
         )}
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={!!markAll}
+        onClose={() => setMarkAll(null)}
+        onConfirm={applyMarkAll}
+        title={markAll ? `Mark everyone ${STATUS[markAll].label.toLowerCase()} for ${monthLabel(month)}?` : ''}
+        confirmLabel={markAll === 'A' ? 'Mark all absent' : 'Mark all present'}
+        danger={markAll === 'A'}
+      >
+        {markAll &&
+          (() => {
+            const marked = workingCells.filter((c) => c.current && c.current !== markAll).length
+            return (
+              <>
+                Every working day for{' '}
+                <span className="font-semibold text-ink">
+                  {employees.length} {employees.length === 1 ? 'person' : 'people'}
+                </span>
+                {employees.length !== data.employees.length && ' (the ones shown by your filters)'} is set to {STATUS[markAll].label.toLowerCase()}. Weekly
+                offs and holidays are left alone.
+                {marked > 0 && (
+                  <span className="block mt-2 font-semibold text-amber-ink">
+                    {marked} {marked === 1 ? 'day is' : 'days are'} already marked as something else and will be overwritten.
+                  </span>
+                )}
+              </>
+            )
+          })()}
       </ConfirmDialog>
       <ConfirmDialog open={dialog === 'unlock'} onClose={() => setDialog(null)} onConfirm={() => setLock(false)} title={`Unlock ${monthLabel(month)}?`} confirmLabel="Unlock" busy={busy}>
         The register becomes editable again. If a draft payroll run exists, recalculate it after you re-lock.

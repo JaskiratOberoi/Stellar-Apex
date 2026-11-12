@@ -19,7 +19,7 @@ import {
 import { useEffect, useState } from 'react'
 import { canEdit, cx } from '../lib/utils'
 import { DUR, EASE_IN, EASE_OUT, spring } from '../lib/motion'
-import { useEntity } from '../store/EntityContext'
+import { HoldEntity, useEntity } from '../store/EntityContext'
 import { useAuth } from '../store/AuthContext'
 import { ENTITY_MARK } from './logos'
 import { Button, Skeleton } from './kit'
@@ -178,11 +178,15 @@ function GlobalSearch() {
   )
 }
 
-export default function AppLayout() {
+/* The signed-in shell: rail, top bar and the routed page. Rendered inside
+   <HoldEntity>, so `entity` is always set here, even while exiting. */
+/* The signed-in shell: rail, top bar and the routed page. Always rendered
+   inside <HoldEntity>, so `entity` is set here even while it animates out. */
+function Shell() {
   const navigate = useNavigate()
   const location = useLocation()
   const outlet = useOutlet()
-  const { user, ready } = useAuth()
+  const { user } = useAuth()
   const { entity } = useEntity()
   const [mobileNav, setMobileNav] = useState(false)
 
@@ -193,6 +197,86 @@ export default function AppLayout() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [mobileNav])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.985 }}
+      animate={{ opacity: 1, scale: 1, transition: { duration: DUR.slow, ease: EASE_OUT } }}
+      exit={{ opacity: 0, transition: { duration: DUR.base } }}
+      className={cx('min-h-dvh flex', `portal-${entity.hue}`)}
+    >
+      {/* Desktop rail */}
+      <aside className="no-print hidden lg:block w-60 shrink-0 bg-rail sticky top-0 h-dvh">
+        <Rail layoutId="rail-tab" />
+      </aside>
+
+      {/* Mobile rail — slides in over a fading scrim */}
+      <AnimatePresence>
+        {mobileNav && (
+          <div className="no-print lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu">
+            <motion.div
+              className="absolute inset-0 bg-ink/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: DUR.base } }}
+              exit={{ opacity: 0, transition: { duration: DUR.base } }}
+              onClick={() => setMobileNav(false)}
+            />
+            <motion.aside
+              className="absolute inset-y-0 left-0 w-64 bg-rail shadow-pop"
+              initial={{ x: '-100%' }}
+              animate={{ x: 0, transition: { duration: DUR.slow, ease: EASE_OUT } }}
+              exit={{ x: '-100%', transition: { duration: DUR.base, ease: EASE_IN } }}
+            >
+              <button
+                onClick={() => setMobileNav(false)}
+                className="absolute top-5 right-3 z-10 p-1.5 rounded-lg text-rail-text hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close menu"
+              >
+                <X size={18} />
+              </button>
+              <Rail layoutId="rail-tab-mobile" onNavigate={() => setMobileNav(false)} />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Main column */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="no-print h-[68px] shrink-0 sticky top-0 z-40 bg-paper/85 backdrop-blur border-b border-hairline flex items-center gap-3 px-4 sm:px-6">
+          <button
+            className="lg:hidden -ml-1 p-1.5 rounded-lg hover:bg-hairline/60 active:scale-90 transition-[background-color,transform] cursor-pointer"
+            onClick={() => setMobileNav(true)}
+            aria-label="Open menu"
+          >
+            <List size={19} />
+          </button>
+
+          <GlobalSearch />
+
+          {canEdit(user) && (
+            <Button className="ml-auto" icon={Plus} onClick={() => navigate('/people/new')}>
+              <span className="hidden sm:inline">Add employee</span>
+            </Button>
+          )}
+        </header>
+
+        {/* Route change: the outgoing page fades, the incoming one rises
+            (each page animates its own entrance). */}
+        <main className="flex-1 px-4 sm:px-6 py-6 print:p-0">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={location.pathname} exit={{ opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } }}>
+              {outlet}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </motion.div>
+  )
+}
+
+export default function AppLayout() {
+  const { user, ready } = useAuth()
+  const { entity } = useEntity()
 
   // Which of the three top-level screens is showing: they cross-fade.
   const stage = !ready ? 'boot' : !user ? 'login' : !entity ? 'picker' : 'app'
@@ -229,79 +313,9 @@ export default function AppLayout() {
       )}
 
       {stage === 'app' && (
-        <motion.div
-          key="app"
-          initial={{ opacity: 0, scale: 0.985 }}
-          animate={{ opacity: 1, scale: 1, transition: { duration: DUR.slow, ease: EASE_OUT } }}
-          exit={{ opacity: 0, transition: { duration: DUR.base } }}
-          className={cx('min-h-dvh flex', `portal-${entity.hue}`)}
-        >
-          {/* Desktop rail */}
-          <aside className="no-print hidden lg:block w-60 shrink-0 bg-rail sticky top-0 h-dvh">
-            <Rail layoutId="rail-tab" />
-          </aside>
-
-          {/* Mobile rail — slides in over a fading scrim */}
-          <AnimatePresence>
-            {mobileNav && (
-              <div className="no-print lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menu">
-                <motion.div
-                  className="absolute inset-0 bg-ink/50"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { duration: DUR.base } }}
-                  exit={{ opacity: 0, transition: { duration: DUR.base } }}
-                  onClick={() => setMobileNav(false)}
-                />
-                <motion.aside
-                  className="absolute inset-y-0 left-0 w-64 bg-rail shadow-pop"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: 0, transition: { duration: DUR.slow, ease: EASE_OUT } }}
-                  exit={{ x: '-100%', transition: { duration: DUR.base, ease: EASE_IN } }}
-                >
-                  <button
-                    onClick={() => setMobileNav(false)}
-                    className="absolute top-5 right-3 z-10 p-1.5 rounded-lg text-rail-text hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                    aria-label="Close menu"
-                  >
-                    <X size={18} />
-                  </button>
-                  <Rail layoutId="rail-tab-mobile" onNavigate={() => setMobileNav(false)} />
-                </motion.aside>
-              </div>
-            )}
-          </AnimatePresence>
-
-          {/* Main column */}
-          <div className="flex-1 min-w-0 flex flex-col">
-            <header className="no-print h-[68px] shrink-0 sticky top-0 z-40 bg-paper/85 backdrop-blur border-b border-hairline flex items-center gap-3 px-4 sm:px-6">
-              <button
-                className="lg:hidden -ml-1 p-1.5 rounded-lg hover:bg-hairline/60 active:scale-90 transition-[background-color,transform] cursor-pointer"
-                onClick={() => setMobileNav(true)}
-                aria-label="Open menu"
-              >
-                <List size={19} />
-              </button>
-
-              <GlobalSearch />
-
-              {canEdit(user) && (
-                <Button className="ml-auto" icon={Plus} onClick={() => navigate('/people/new')}>
-                  <span className="hidden sm:inline">Add employee</span>
-                </Button>
-              )}
-            </header>
-
-            {/* Route change: the outgoing page fades, the incoming one rises
-                (each page animates its own entrance). */}
-            <main className="flex-1 px-4 sm:px-6 py-6 print:p-0">
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={location.pathname} exit={{ opacity: 0, transition: { duration: DUR.fast, ease: EASE_IN } }}>
-                  {outlet}
-                </motion.div>
-              </AnimatePresence>
-            </main>
-          </div>
-        </motion.div>
+        <HoldEntity key="app">
+          <Shell />
+        </HoldEntity>
       )}
     </AnimatePresence>
   )
