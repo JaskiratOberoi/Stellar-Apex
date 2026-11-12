@@ -92,17 +92,29 @@ function rowTotals(emp, marks, days) {
 }
 
 /* ---------------- one employee row ---------------- */
-const Row = memo(function Row({ emp, marks, days, activeDay, rowIndex }) {
+const ROW_MARK = 'grid place-items-center size-[20px] rounded-[5px] text-[9.5px] font-mono font-bold cursor-pointer transition-[transform,box-shadow] duration-[var(--dur-fast)] hover:ring-1 hover:ring-inset hover:ring-current active:scale-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent'
+
+const Row = memo(function Row({ emp, marks, days, activeDay, rowIndex, onMarkMonth }) {
   const totals = useMemo(() => rowTotals(emp, marks, days), [emp, marks, days])
   return (
     <tr className="group">
       <th scope="row" className="sticky left-0 z-10 bg-surface group-hover:bg-paper transition-colors text-left font-normal px-3 py-1 border-b border-hairline">
-        <div className="flex items-center gap-2.5 w-[104px] sm:w-[188px]">
+        <div className={cx('flex items-center gap-2.5', onMarkMonth ? 'w-[132px] sm:w-[224px]' : 'w-[104px] sm:w-[188px]')}>
           <Avatar name={emp.name} size={26} className="hidden sm:grid" />
-          <div className="min-w-0 leading-tight">
+          <div className="min-w-0 flex-1 leading-tight">
             <p className="text-[12.5px] font-semibold truncate">{emp.name}</p>
             <p className="text-[10.5px] text-ink-faint font-mono truncate">{emp.code}</p>
           </div>
+          {onMarkMonth && (
+            <div className="flex items-center gap-1 shrink-0">
+              <button type="button" onClick={() => onMarkMonth(emp, 'P')} title={`Mark ${emp.name} present for the whole month`} aria-label={`Mark ${emp.name} present for the whole month`} className={cx(ROW_MARK, STATUS.P.cell)}>
+                P
+              </button>
+              <button type="button" onClick={() => onMarkMonth(emp, 'A')} title={`Mark ${emp.name} absent for the whole month`} aria-label={`Mark ${emp.name} absent for the whole month`} className={cx(ROW_MARK, STATUS.A.cell)}>
+                A
+              </button>
+            </div>
+          )}
         </div>
       </th>
       {days.map((d) => {
@@ -368,7 +380,7 @@ export default function Attendance() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [brush, setBrush] = useState('CYCLE') // 'CYCLE' | a status code | 'CLEAR'
-  const [markAll, setMarkAll] = useState(null) // 'P' | 'A' while its confirmation is open
+  const [markAll, setMarkAll] = useState(null) // { status: 'P' | 'A', emp?: one person } while its confirmation is open
   const [branch, setBranch] = useState('')
   const [department, setDepartment] = useState('')
   const [q, setQ] = useState('')
@@ -591,12 +603,28 @@ export default function Attendance() {
     }
     return list
   }, [employees, days, marks])
-  const applyMarkAll = () => {
-    const list = workingCells.filter((c) => c.current !== markAll).map((c) => ({ employeeId: c.employeeId, date: c.date, status: markAll }))
+  // The working days a mark-all covers: one person's, or everyone shown.
+  const scopeCells = (emp) => (emp ? workingCells.filter((c) => c.employeeId === emp.id) : workingCells)
+  const applyMarkAll = ({ status, emp }) => {
+    const list = scopeCells(emp).filter((c) => c.current !== status).map((c) => ({ employeeId: c.employeeId, date: c.date, status }))
     applyCells(list)
-    toast.success(list.length ? `Marked ${list.length} days ${STATUS[markAll].label.toLowerCase()}` : `Every working day is already ${STATUS[markAll].label.toLowerCase()}`)
+    const word = STATUS[status].label.toLowerCase()
+    const who = emp ? `${emp.name}: ` : ''
+    toast.success(list.length ? `${who}marked ${list.length} ${list.length === 1 ? 'day' : 'days'} ${word}`.replace(/^m/, 'M') : `${who}every working day is already ${word}`.replace(/^e/, 'E'))
     setMarkAll(null)
   }
+  // One person's whole month. Asks first only when it would overwrite marks.
+  const markMonth = (emp, status) => {
+    const req = { status, emp }
+    if (scopeCells(emp).some((c) => c.current && c.current !== status)) setMarkAll(req)
+    else applyMarkAll(req)
+  }
+  // Rows are memoised, so they get one stable callback that reads the latest state.
+  const markMonthRef = useRef(markMonth)
+  useEffect(() => {
+    markMonthRef.current = markMonth
+  })
+  const onMarkMonth = useCallback((emp, status) => markMonthRef.current(emp, status), [])
 
   const importCells = async (cells) => {
     clearTimeout(timer.current)
@@ -810,11 +838,11 @@ export default function Attendance() {
                 Fill blanks as present
               </Button>
             )}
-            <Button size="sm" variant="secondary" onClick={() => setMarkAll('P')} disabled={!workingCells.length}>
+            <Button size="sm" variant="secondary" onClick={() => setMarkAll({ status: 'P' })} disabled={!workingCells.length}>
               <span className={cx('grid place-items-center size-5 rounded-[5px] text-[9.5px] font-mono font-bold', STATUS.P.cell)}>P</span>
               All present
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => setMarkAll('A')} disabled={!workingCells.length}>
+            <Button size="sm" variant="secondary" onClick={() => setMarkAll({ status: 'A' })} disabled={!workingCells.length}>
               <span className={cx('grid place-items-center size-5 rounded-[5px] text-[9.5px] font-mono font-bold', STATUS.A.cell)}>A</span>
               All absent
             </Button>
@@ -881,7 +909,7 @@ export default function Attendance() {
               </thead>
               <tbody>
                 {employees.map((e, i) => (
-                  <Row key={e.id} emp={e} marks={marks[e.id]} days={days} rowIndex={i} activeDay={active?.r === i ? active.d : null} />
+                  <Row key={e.id} emp={e} marks={marks[e.id]} days={days} rowIndex={i} activeDay={active?.r === i ? active.d : null} onMarkMonth={writable ? onMarkMonth : undefined} />
                 ))}
               </tbody>
             </table>
@@ -892,7 +920,7 @@ export default function Attendance() {
         <p className="text-[12px] text-ink-faint mt-2.5">
           Click a day to step through its statuses, or pick one status and click or drag to set it. Arrow keys move; press P, A, D (half day), L (paid leave),
           U (unpaid), W or H to mark; Backspace clears.
-          Faded days are the weekly off and holidays, applied automatically.
+          The P and A buttons beside a name mark that person's whole month. Faded days are the weekly off and holidays, applied automatically.
         </p>
       )}
 
@@ -925,22 +953,31 @@ export default function Attendance() {
       <ConfirmDialog
         open={!!markAll}
         onClose={() => setMarkAll(null)}
-        onConfirm={applyMarkAll}
-        title={markAll ? `Mark everyone ${STATUS[markAll].label.toLowerCase()} for ${monthLabel(month)}?` : ''}
-        confirmLabel={markAll === 'A' ? 'Mark all absent' : 'Mark all present'}
-        danger={markAll === 'A'}
+        onConfirm={() => applyMarkAll(markAll)}
+        title={markAll ? `Mark ${markAll.emp ? markAll.emp.name : 'everyone'} ${STATUS[markAll.status].label.toLowerCase()} for ${monthLabel(month)}?` : ''}
+        confirmLabel={markAll?.emp ? `Mark ${STATUS[markAll.status].label.toLowerCase()}` : markAll?.status === 'A' ? 'Mark all absent' : 'Mark all present'}
+        danger={markAll?.status === 'A'}
       >
         {markAll &&
           (() => {
-            const marked = workingCells.filter((c) => c.current && c.current !== markAll).length
+            const word = STATUS[markAll.status].label.toLowerCase()
+            const marked = scopeCells(markAll.emp).filter((c) => c.current && c.current !== markAll.status).length
             return (
               <>
-                Every working day for{' '}
-                <span className="font-semibold text-ink">
-                  {employees.length} {employees.length === 1 ? 'person' : 'people'}
-                </span>
-                {employees.length !== data.employees.length && ' (the ones shown by your filters)'} is set to {STATUS[markAll].label.toLowerCase()}. Weekly
-                offs and holidays are left alone.
+                {markAll.emp ? (
+                  <>
+                    Every working day for <span className="font-semibold text-ink">{markAll.emp.name}</span> is set to {word}.
+                  </>
+                ) : (
+                  <>
+                    Every working day for{' '}
+                    <span className="font-semibold text-ink">
+                      {employees.length} {employees.length === 1 ? 'person' : 'people'}
+                    </span>
+                    {employees.length !== data.employees.length && ' (the ones shown by your filters)'} is set to {word}.
+                  </>
+                )}{' '}
+                Weekly offs and holidays are left alone.
                 {marked > 0 && (
                   <span className="block mt-2 font-semibold text-amber-ink">
                     {marked} {marked === 1 ? 'day is' : 'days are'} already marked as something else and will be overwritten.
