@@ -5,6 +5,7 @@ import { collapse, item, stagger } from '../lib/motion'
 import { Button } from '../components/kit'
 import { useAuth } from '../store/AuthContext'
 import { NobleMark, AresMark } from '../components/logos'
+import LoginScene from '../components/LoginScene'
 
 export default function Login() {
   const { login } = useAuth()
@@ -28,7 +29,7 @@ export default function Login() {
   return (
     <div className="min-h-dvh flex flex-col lg:flex-row">
       {/* ---- Brand panel ---- */}
-      <div className="relative lg:w-[46%] xl:w-[42%] shrink-0 bg-rail text-white flex flex-col justify-between px-8 py-8 lg:px-12 lg:py-12 overflow-hidden">
+      <div className="relative lg:w-[48%] xl:w-[46%] shrink-0 bg-rail text-white flex flex-col justify-between px-8 py-8 lg:px-12 lg:py-10 overflow-hidden">
         {/* Ledger rules — faint horizontal lines, like a paper register */}
         <div
           aria-hidden
@@ -38,6 +39,10 @@ export default function Login() {
               'repeating-linear-gradient(to bottom, transparent 0, transparent 39px, #fff 39px, #fff 40px)',
           }}
         />
+
+        {/* Slow light drifting behind everything */}
+        <div aria-hidden className="login-drift absolute -right-[20%] -top-[18%] size-[70%] rounded-full bg-[radial-gradient(closest-side,rgb(154_151_245/0.16),transparent)]" />
+        <div aria-hidden className="login-drift absolute -left-[25%] bottom-[-30%] size-[80%] rounded-full bg-[radial-gradient(closest-side,rgb(227_189_92/0.10),transparent)]" style={{ animationDelay: '-9s' }} />
 
         <div className="relative flex items-center gap-3">
           <div className="size-9 rounded-[11px] bg-surface grid place-items-center">
@@ -51,8 +56,11 @@ export default function Login() {
           </div>
         </div>
 
-        <motion.div variants={stagger(0.09)} initial="initial" animate="animate" className="relative py-10 lg:py-0">
-          <motion.h1 variants={item} className="font-display font-bold tracking-tight text-[clamp(28px,3.4vw,44px)] leading-[1.08] max-w-md text-balance">
+        {/* The records, floating in depth. Desktop only: the stacked mobile header stays short. */}
+        <LoginScene className="hidden lg:block flex-1 min-h-[300px] my-2" />
+
+        <motion.div variants={stagger(0.09)} initial="initial" animate="animate" className="relative py-10 lg:pt-0 lg:pb-8">
+          <motion.h1 variants={item} className="font-display font-bold tracking-tight text-[clamp(28px,3vw,40px)] leading-[1.08] max-w-md text-balance">
             Every person, every branch, one register.
           </motion.h1>
           <motion.p variants={item} className="text-rail-text text-[14px] leading-relaxed mt-4 max-w-sm">
