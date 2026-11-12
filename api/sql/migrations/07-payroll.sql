@@ -1,0 +1,83 @@
+-- Salary structures (effective-dated), monthly payroll runs and their lines
+-- (the salary sheet). Lines snapshot the employee and structure so a finalised
+-- sheet never changes when the master data does.
+
+CREATE TABLE IF NOT EXISTS salary_structures (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  entity_id         VARCHAR(16)   NOT NULL,
+  employee_id       CHAR(26)      NOT NULL,
+  effective_from    DATE          NOT NULL,
+  basic             DECIMAL(12,2) NOT NULL DEFAULT 0,
+  hra               DECIMAL(12,2) NOT NULL DEFAULT 0,
+  conveyance        DECIMAL(12,2) NOT NULL DEFAULT 0,
+  special_allowance DECIMAL(12,2) NOT NULL DEFAULT 0,
+  other_allowance   DECIMAL(12,2) NOT NULL DEFAULT 0,
+  expense_component DECIMAL(12,2) NOT NULL DEFAULT 0,
+  pf_applicable     TINYINT(1)    NOT NULL DEFAULT 1,
+  esi_applicable    TINYINT(1)    NOT NULL DEFAULT 1,
+  pt_applicable     TINYINT(1)    NOT NULL DEFAULT 1,
+  tds_monthly       DECIMAL(12,2) NOT NULL DEFAULT 0,
+  note              VARCHAR(255)  NULL,
+  created_by        INT           NULL,
+  created_at        TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (employee_id, effective_from),
+  INDEX (entity_id),
+  FOREIGN KEY (employee_id) REFERENCES employees(id),
+  FOREIGN KEY (entity_id) REFERENCES entities(id)
+);
+
+CREATE TABLE IF NOT EXISTS payroll_runs (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  entity_id    VARCHAR(16) NOT NULL,
+  period       CHAR(7)     NOT NULL,
+  status       ENUM('draft','finalised','paid') NOT NULL DEFAULT 'draft',
+  created_by   INT         NULL,
+  created_at   TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+  finalised_by INT         NULL,
+  finalised_at DATETIME    NULL,
+  UNIQUE (entity_id, period),
+  FOREIGN KEY (entity_id) REFERENCES entities(id)
+);
+
+CREATE TABLE IF NOT EXISTS payroll_lines (
+  id                    INT AUTO_INCREMENT PRIMARY KEY,
+  run_id                INT           NOT NULL,
+  entity_id             VARCHAR(16)   NOT NULL,
+  employee_id           CHAR(26)      NOT NULL,
+  emp_code              VARCHAR(16)   NOT NULL,
+  emp_name              VARCHAR(96)   NOT NULL,
+  designation           VARCHAR(96)   NULL,
+  department            VARCHAR(64)   NULL,
+  branch                VARCHAR(64)   NULL,
+  structure             JSON          NOT NULL,
+  adjustments           JSON          NULL,
+  days_in_month         DECIMAL(4,1)  NOT NULL,
+  payable_days          DECIMAL(4,1)  NOT NULL,
+  paid_days             DECIMAL(4,1)  NOT NULL,
+  lop_days              DECIMAL(4,1)  NOT NULL,
+  basic                 DECIMAL(12,2) NOT NULL DEFAULT 0,
+  hra                   DECIMAL(12,2) NOT NULL DEFAULT 0,
+  conveyance            DECIMAL(12,2) NOT NULL DEFAULT 0,
+  special_allowance     DECIMAL(12,2) NOT NULL DEFAULT 0,
+  other_allowance       DECIMAL(12,2) NOT NULL DEFAULT 0,
+  arrears               DECIMAL(12,2) NOT NULL DEFAULT 0,
+  incentive             DECIMAL(12,2) NOT NULL DEFAULT 0,
+  gross                 DECIMAL(12,2) NOT NULL DEFAULT 0,
+  pf_wages              DECIMAL(12,2) NOT NULL DEFAULT 0,
+  pf_employee           DECIMAL(12,2) NOT NULL DEFAULT 0,
+  esi_employee          DECIMAL(12,2) NOT NULL DEFAULT 0,
+  pt                    DECIMAL(12,2) NOT NULL DEFAULT 0,
+  tds                   DECIMAL(12,2) NOT NULL DEFAULT 0,
+  advance               DECIMAL(12,2) NOT NULL DEFAULT 0,
+  other_deduction       DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total_deductions      DECIMAL(12,2) NOT NULL DEFAULT 0,
+  expense_reimbursement DECIMAL(12,2) NOT NULL DEFAULT 0,
+  net_pay               DECIMAL(12,2) NOT NULL DEFAULT 0,
+  pf_employer           DECIMAL(12,2) NOT NULL DEFAULT 0,
+  esi_employer          DECIMAL(12,2) NOT NULL DEFAULT 0,
+  remarks               VARCHAR(255)  NULL,
+  UNIQUE (run_id, employee_id),
+  INDEX (entity_id),
+  FOREIGN KEY (run_id) REFERENCES payroll_runs(id) ON DELETE CASCADE,
+  FOREIGN KEY (employee_id) REFERENCES employees(id)
+);

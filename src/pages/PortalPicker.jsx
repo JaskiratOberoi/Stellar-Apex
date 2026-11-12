@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { ArrowRight, MapPin, SignOut, UsersThree } from '@phosphor-icons/react'
+import { ArrowRight, SignOut, UsersThree } from '@phosphor-icons/react'
 import { COMPANIES } from '../data/seed'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
@@ -34,9 +34,10 @@ function Door({ company, count, onEnter, index }) {
   const Logo = ENTITY_LOGO[company.hue]
   return (
     <motion.button
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, delay: index * 0.12 }}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.12, ease: [0.16, 1, 0.3, 1] }}
+      whileTap={{ scale: 0.99 }}
       onClick={() => onEnter(company.id)}
       className={cx(
         'group relative flex-1 hover:flex-[1.25] min-h-[50dvh] lg:min-h-0 overflow-hidden text-left cursor-pointer',
@@ -69,10 +70,6 @@ function Door({ company, count, onEnter, index }) {
               <UsersThree size={14} /> {count} people
             </span>
           )}
-          <span className="inline-flex items-center gap-1.5">
-            <MapPin size={14} /> {company.branches.length}{' '}
-            {company.branches.length === 1 ? 'branch' : 'branches'}
-          </span>
         </div>
 
         <span

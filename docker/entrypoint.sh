@@ -13,6 +13,9 @@ until php -r '
 done
 echo "[entrypoint] database is ready."
 
+# Schema migrations (idempotent: each file in api/sql/migrations runs once).
+php /var/www/html/api/tools/migrate.php
+
 # Roster seeding (idempotent; reference data + users come from MySQL init).
 #   SEED_MODE=demo   -> dev demo roster (several fake employees)
 #   SEED_MODE=sample -> exactly 1 Noble sample record (for a clean prod start)

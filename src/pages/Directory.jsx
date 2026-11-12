@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   CaretDown,
   EnvelopeSimple,
@@ -10,12 +10,23 @@ import {
   Rows,
   SquaresFour,
   UserPlus,
+  X,
 } from '@phosphor-icons/react'
-import { DEPARTMENTS, STATUSES } from '../data/seed'
+import { STATUSES } from '../data/seed'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
-import { cx, tenure } from '../lib/utils'
+import { useReference } from '../store/ReferenceStore'
+import { useAuth } from '../store/AuthContext'
+import { canEdit, completeness, cx, payrollBlockers, tenure } from '../lib/utils'
+import { fadeUp, listItem } from '../lib/motion'
 import { Avatar, EmptyState, StatusPill } from '../components/ui'
+import { AnimatedNumber, Button, Segmented, SkeletonRows } from '../components/kit'
+
+/* Deep-link filters used by the dashboard's "needs attention" list. */
+const NEEDS = {
+  incomplete: { label: 'Incomplete profiles', test: (e) => completeness(e).pct < 100 },
+  payroll: { label: 'Not payroll-ready', test: (e) => payrollBlockers(e).length > 0 },
+}
 
 /* ---------------- Filter select ---------------- */
 function FilterSelect({ value, onChange, options, allLabel, allValue = 'all' }) {
@@ -72,7 +83,7 @@ function RosterPulse({ counts, status, setStatus }) {
             Headcount
           </p>
           <p className="font-display text-[38px] leading-[1.1] font-bold tracking-tight tabular-nums">
-            {counts.total}
+            <AnimatedNumber value={counts.total} />
           </p>
         </button>
 
@@ -89,7 +100,7 @@ function RosterPulse({ counts, status, setStatus }) {
                   title={`${STATUSES[id].label}: ${n}`}
                   className={cx(
                     seg,
-                    'cursor-pointer transition-all duration-300 rounded-[3px] first:rounded-l-full last:rounded-r-full',
+                    'cursor-pointer transition-[flex-grow,opacity] duration-[var(--dur-slow)] ease-[var(--ease-out)] rounded-[3px] first:rounded-l-full last:rounded-r-full hover:brightness-110',
                     status !== 'all' && status !== id && 'opacity-25',
                   )}
                   style={{ flexGrow: n, minWidth: 6 }}
@@ -128,9 +139,13 @@ function RosterPulse({ counts, status, setStatus }) {
 /* ---------------- Row / Card ---------------- */
 function PersonRow({ e, onOpen, managerName, isHQ }) {
   return (
-    <tr
+    <motion.tr
+      layout="position"
+      {...listItem}
       onClick={onOpen}
-      className="group cursor-pointer border-b border-hairline last:border-0 hover:bg-accent-soft/40 transition-colors"
+      tabIndex={0}
+      onKeyDown={(ev) => ev.key === 'Enter' && onOpen()}
+      className="group cursor-pointer border-b border-hairline last:border-0 hover:bg-accent-soft/40 focus-visible:bg-accent-soft/40 transition-colors outline-none"
     >
       <td className="py-3 pl-4 pr-3">
         <div className="flex items-center gap-3">
@@ -169,7 +184,7 @@ function PersonRow({ e, onOpen, managerName, isHQ }) {
         <StatusPill status={e.status} />
       </td>
       <td className="pr-4 pl-2 text-right">
-        <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
           <a
             href={`mailto:${e.email}`}
             onClick={(ev) => ev.stopPropagation()}
@@ -188,7 +203,7 @@ function PersonRow({ e, onOpen, managerName, isHQ }) {
           </a>
         </div>
       </td>
-    </tr>
+    </motion.tr>
   )
 }
 
@@ -196,10 +211,11 @@ function PersonCard({ e, onOpen }) {
   return (
     <motion.button
       layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      {...listItem}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.985 }}
       onClick={onOpen}
-      className="text-left bg-surface rounded-2xl border border-hairline shadow-card p-5 hover:border-accent/40 hover:shadow-pop hover:-translate-y-0.5 active:scale-[0.99] transition-all duration-200 cursor-pointer"
+      className="text-left bg-surface rounded-2xl border border-hairline shadow-card p-5 hover:border-accent/40 hover:shadow-pop transition-[border-color,box-shadow] duration-[var(--dur-base)] cursor-pointer"
     >
       <div className="flex items-start justify-between">
         <Avatar name={e.name} photo={e.photo} size={52} />
@@ -223,14 +239,29 @@ function PersonCard({ e, onOpen }) {
 
 /* ---------------- Page ---------------- */
 export default function Directory() {
-  const { employees, byId } = useEmployees()
+  const { employees, byId, loading } = useEmployees()
   const { entity } = useEntity()
+  const { user } = useAuth()
+  const ref = useReference()
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
 
-  const [q, setQ] = useState('')
+  // Search, status and the dashboard's "need" filter live in the URL, so the
+  // top-bar search and dashboard links land on an already-filtered list.
+  const q = params.get('q') || ''
+  const status = params.get('status') || 'all'
+  const need = NEEDS[params.get('need')] ? params.get('need') : null
+  const setParam = (key, value, empty) => {
+    const next = new URLSearchParams(params)
+    if (value === empty || !value) next.delete(key)
+    else next.set(key, value)
+    setParams(next, { replace: true })
+  }
+  const setQ = (v) => setParam('q', v, '')
+  const setStatus = (v) => setParam('status', v, 'all')
+
   const [branch, setBranch] = useState('all')
   const [department, setDepartment] = useState('all')
-  const [status, setStatus] = useState('all')
   const [groupBy, setGroupBy] = useState('none')
   const [view, setView] = useState('table')
 
@@ -252,12 +283,13 @@ export default function Directory() {
       if (branch !== 'all' && e.branch !== branch) return false
       if (department !== 'all' && e.department !== department) return false
       if (status !== 'all' && e.status !== status) return false
+      if (need && (e.status === 'exited' || !NEEDS[need].test(e))) return false
       if (!needle) return true
       return [e.name, e.code, e.email, e.mobile, e.designation, e.department, e.branch]
         .filter(Boolean)
         .some((v) => v.toLowerCase().includes(needle))
     })
-  }, [roster, q, branch, department, status])
+  }, [roster, q, branch, department, status, need])
 
   const groups = useMemo(() => {
     if (groupBy === 'none') return [{ key: null, items: filtered }]
@@ -275,13 +307,13 @@ export default function Directory() {
   const open = (e) => navigate(`/people/${e.id}`)
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <motion.div {...fadeUp} className="max-w-7xl mx-auto">
       {/* Heading */}
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display text-[28px] font-bold tracking-tight">People</h1>
           <p className="text-[13px] text-ink-faint mt-0.5">
-            {entity.legalName} · {entity.branches.length} branches
+            {entity.legalName} · {ref.branches.length} {ref.branches.length === 1 ? 'branch' : 'branches'}
           </p>
         </div>
       </div>
@@ -305,8 +337,8 @@ export default function Directory() {
           />
         </div>
 
-        <FilterSelect value={branch} onChange={setBranch} allLabel="All branches" options={entity.branches} />
-        <FilterSelect value={department} onChange={setDepartment} allLabel="All departments" options={DEPARTMENTS} />
+        <FilterSelect value={branch} onChange={setBranch} allLabel="All branches" options={ref.branchNames} />
+        <FilterSelect value={department} onChange={setDepartment} allLabel="All departments" options={ref.departmentNames} />
         <FilterSelect
           value={status}
           onChange={setStatus}
@@ -325,32 +357,41 @@ export default function Directory() {
         />
 
         {/* View toggle */}
-        <div className="ml-auto flex rounded-[10px] border border-hairline bg-surface p-0.5">
-          {[
-            { id: 'table', icon: Rows },
-            { id: 'cards', icon: SquaresFour },
-          ].map(({ id, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setView(id)}
-              className={cx(
-                'p-1.5 rounded-lg transition-colors cursor-pointer',
-                view === id ? 'bg-ink text-paper' : 'text-ink-faint hover:text-ink',
-              )}
-              aria-label={`${id} view`}
-            >
-              <Icon size={15} weight={view === id ? 'fill' : 'regular'} />
-            </button>
-          ))}
-        </div>
+        <Segmented
+          className="ml-auto"
+          value={view}
+          onChange={setView}
+          options={[
+            { id: 'table', icon: Rows, title: 'Table view', label: <span className="sr-only">Table view</span> },
+            { id: 'cards', icon: SquaresFour, title: 'Card view', label: <span className="sr-only">Card view</span> },
+          ]}
+        />
       </div>
 
       {/* Results */}
-      <p className="text-[12px] text-ink-faint mt-4 mb-2 font-mono tabular-nums">
-        {filtered.length} {filtered.length === 1 ? 'person' : 'people'}
-      </p>
+      <div className="flex items-center gap-2 mt-4 mb-2 min-h-7">
+        <p className="text-[12px] text-ink-faint font-mono tabular-nums">
+          <AnimatedNumber value={filtered.length} /> {filtered.length === 1 ? 'person' : 'people'}
+        </p>
+        <AnimatePresence>
+          {need && (
+            <motion.button
+              key="need"
+              {...listItem}
+              onClick={() => setParam('need', null)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-soft text-amber-ink text-[12px] font-semibold pl-2.5 pr-1.5 py-1 cursor-pointer hover:brightness-95 active:scale-95 transition-[filter,transform]"
+            >
+              {NEEDS[need].label} <X size={12} weight="bold" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
 
-      {filtered.length === 0 ? (
+      {loading && roster.length === 0 ? (
+        <div className="bg-surface rounded-2xl border border-hairline shadow-card p-5">
+          <SkeletonRows rows={7} />
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="bg-surface rounded-2xl border border-hairline shadow-card">
           {counts.total === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -361,12 +402,11 @@ export default function Directory() {
               <p className="text-[13px] text-ink-faint mt-1 max-w-xs">
                 {entity.name} has no people on record. Add your first employee to get started.
               </p>
-              <button
-                onClick={() => navigate('/people/new')}
-                className="mt-4 inline-flex items-center gap-1.5 h-9 rounded-[10px] bg-accent hover:bg-accent-deep active:scale-[0.98] text-white text-[13px] font-semibold px-4 transition-all cursor-pointer"
-              >
-                <UserPlus size={15} weight="bold" /> Add employee
-              </button>
+              {canEdit(user) && (
+                <Button className="mt-4" icon={UserPlus} onClick={() => navigate('/people/new')}>
+                  Add employee
+                </Button>
+              )}
             </div>
           ) : (
             <EmptyState
@@ -403,28 +443,32 @@ export default function Directory() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((e) => (
-                      <PersonRow
-                        key={e.id}
-                        e={e}
-                        onOpen={() => open(e)}
-                        managerName={e.reportsTo ? byId(e.reportsTo)?.name : null}
-                        isHQ={e.branch === entity.headOffice}
-                      />
-                    ))}
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {items.map((e) => (
+                        <PersonRow
+                          key={e.id}
+                          e={e}
+                          onOpen={() => open(e)}
+                          managerName={e.reportsTo ? byId(e.reportsTo)?.name : null}
+                          isHQ={e.branch === ref.headOffice}
+                        />
+                      ))}
+                    </AnimatePresence>
                   </tbody>
                 </table>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {items.map((e) => (
-                  <PersonCard key={e.id} e={e} onOpen={() => open(e)} />
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {items.map((e) => (
+                    <PersonCard key={e.id} e={e} onOpen={() => open(e)} />
+                  ))}
+                </AnimatePresence>
               </div>
             )}
           </div>
         ))
       )}
-    </div>
+    </motion.div>
   )
 }

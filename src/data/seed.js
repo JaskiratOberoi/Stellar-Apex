@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------ */
-/*  Stellar Apex — seed data                                           */
-/*  Employee Master reference data + demo roster                       */
+/*  Stellar Apex — static portal identity and fixed option lists.      */
+/*  Branches, departments and designations come from the API           */
+/*  (GET /reference), not from this file.                              */
 /*                                                                     */
 /*  Stellar is the owner of the software (branding only) — it is NOT  */
 /*  an entity here. Each company is a separate portal; entities never  */
@@ -11,59 +12,20 @@ export const COMPANIES = {
   noble: {
     id: 'noble',
     name: 'Noble',
-    brand: 'Qugen',
-    legalName: 'Noble Diagnostics Pvt. Ltd.',
+    brand: 'Noble Diagnostics',
+    legalName: 'Qugen Pathlabs Pvt. Ltd.',
     code: 'NBL',
     hue: 'noble', // maps to --color-noble tokens
-    headOffice: 'Qugen (Delhi)',
-    branches: [
-      'Qugen (Delhi)',
-      'Zirakpur',
-      'Khetarpal',
-      'Karnal',
-      'Srinagar',
-      'Samarpan',
-      'Agra',
-      'Rajasthan',
-      'Gorakhpur',
-      'Jhansi',
-      'Amroha',
-      'Jammu',
-      'Lucknow',
-      'Medsky',
-      'Rohtak',
-      'Dehradun',
-      'Haldwani',
-      'Medicare',
-    ],
   },
   ares: {
     id: 'ares',
     name: 'Ares',
     brand: null,
-    legalName: 'Ares Healthcare Pvt. Ltd.',
+    legalName: 'Ares Labs LLP',
     code: 'ARS',
     hue: 'ares',
-    headOffice: 'Head Office',
-    // TODO: replace with Ares' real branch list when available
-    branches: ['Head Office', 'Collection Centre'],
   },
 }
-
-export const DEPARTMENTS = [
-  'Lab Operations',
-  'Phlebotomy',
-  'Pathology',
-  'Radiology',
-  'Front Office',
-  'Customer Support',
-  'Sales & Marketing',
-  'Finance & Accounts',
-  'Human Resources',
-  'IT & Systems',
-  'Logistics',
-  'Admin & Facilities',
-]
 
 export const EMPLOYMENT_TYPES = [
   'Full-time',

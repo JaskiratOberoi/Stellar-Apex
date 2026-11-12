@@ -92,3 +92,52 @@ export const completeness = (e) => {
   }
   return { pct: Math.round((done / total) * 100), missing }
 }
+
+/* ---- Money ---- */
+export const inr = (n, { paise = false } = {}) =>
+  n == null || n === ''
+    ? '—'
+    : `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: paise ? 2 : 0, maximumFractionDigits: paise ? 2 : 0 })}`
+
+/* ---- Months, as 'YYYY-MM' strings ---- */
+const pad2 = (n) => String(n).padStart(2, '0')
+export const currentMonth = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
+}
+export const shiftMonth = (period, delta) => {
+  const d = new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1 + delta, 1)
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
+}
+export const monthLabel = (period, short = false) =>
+  new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1, 1).toLocaleDateString('en-IN', {
+    month: short ? 'short' : 'long',
+    year: 'numeric',
+  })
+export const daysInMonth = (period) => new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0).getDate()
+export const dayISO = (period, day) => `${period}-${pad2(day)}`
+export const todayISO = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+}
+
+/* ---- Roles ---- */
+export const canEdit = (user) => !!user && user.role !== 'viewer'
+export const isAdmin = (user) => !!user && (user.role === 'super_admin' || user.role === 'entity_admin')
+
+/* ---- What blocks a salary payment or statutory filing for one person ---- */
+export const payrollBlockers = (e) => {
+  const out = []
+  if (!e.pan) out.push('PAN')
+  if (!e.uan && !['Consultant', 'Intern'].includes(e.employmentType)) out.push('UAN')
+  if (!e.bank?.accountNumber) out.push('Bank account')
+  if (!e.bank?.ifsc) out.push('IFSC')
+  return out
+}
+
+/* Server timestamps ('YYYY-MM-DD HH:MM:SS', UTC) shown as a local date. */
+export const fmtStamp = (ts) => {
+  if (!ts) return '—'
+  const d = new Date(ts.replace(' ', 'T') + 'Z')
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}

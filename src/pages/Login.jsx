@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { SignIn, CircleNotch } from '@phosphor-icons/react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { SignIn } from '@phosphor-icons/react'
+import { collapse, item, stagger } from '../lib/motion'
+import { Button } from '../components/kit'
 import { useAuth } from '../store/AuthContext'
 import { NobleMark, AresMark } from '../components/logos'
 
@@ -49,19 +51,13 @@ export default function Login() {
           </div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="relative py-10 lg:py-0"
-        >
-          <h1 className="font-display font-bold tracking-tight text-[clamp(28px,3.4vw,44px)] leading-[1.08] max-w-md text-balance">
+        <motion.div variants={stagger(0.09)} initial="initial" animate="animate" className="relative py-10 lg:py-0">
+          <motion.h1 variants={item} className="font-display font-bold tracking-tight text-[clamp(28px,3.4vw,44px)] leading-[1.08] max-w-md text-balance">
             Every person, every branch, one register.
-          </h1>
-          <p className="text-rail-text text-[14px] leading-relaxed mt-4 max-w-sm">
-            People records for the Stellar Group entities, kept payroll-ready and private to
-            each portal.
-          </p>
+          </motion.h1>
+          <motion.p variants={item} className="text-rail-text text-[14px] leading-relaxed mt-4 max-w-sm">
+            People, attendance and payroll for Noble Diagnostics and Ares Labs, kept private to each portal.
+          </motion.p>
         </motion.div>
 
         <div className="relative hidden lg:flex items-center gap-3">
@@ -72,25 +68,20 @@ export default function Login() {
             <AresMark size={24} />
           </div>
           <p className="text-[11.5px] text-rail-text ml-1">
-            Noble Diagnostics · Ares Healthcare
+            Noble Diagnostics · Ares Labs
           </p>
         </div>
       </div>
 
       {/* ---- Form panel ---- */}
       <div className="flex-1 grid place-items-center px-4 py-10 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-sm"
-        >
-          <h2 className="font-display text-[24px] font-bold tracking-tight">Sign in</h2>
-          <p className="text-[13px] text-ink-faint mt-1 mb-7">
+        <motion.div variants={stagger(0.06)} initial="initial" animate="animate" className="w-full max-w-sm">
+          <motion.h2 variants={item} className="font-display text-[24px] font-bold tracking-tight">Sign in</motion.h2>
+          <motion.p variants={item} className="text-[13px] text-ink-faint mt-1 mb-7">
             Your portal is determined by your account.
-          </p>
+          </motion.p>
 
-          <form onSubmit={submit} className="space-y-4">
+          <motion.form variants={item} onSubmit={submit} className="space-y-4">
             <label className="block">
               <span className="text-[12.5px] font-semibold text-ink-soft">Email</span>
               <input
@@ -116,21 +107,18 @@ export default function Login() {
               />
             </label>
 
-            {error && (
-              <p className="text-[12.5px] text-rose-ink bg-rose-soft rounded-[10px] px-3 py-2">
-                {error}
-              </p>
-            )}
+            <AnimatePresence initial={false}>
+              {error && (
+                <motion.div key="error" {...collapse} className="overflow-hidden" role="alert">
+                  <p className="text-[12.5px] text-rose-ink bg-rose-soft rounded-[10px] px-3 py-2">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <button
-              type="submit"
-              disabled={busy}
-              className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-[10px] bg-accent hover:bg-accent-deep active:scale-[0.99] disabled:opacity-60 text-white text-[14px] font-semibold transition-all cursor-pointer"
-            >
-              {busy ? <CircleNotch size={16} className="animate-spin" /> : <SignIn size={16} weight="bold" />}
+            <Button type="submit" size="lg" icon={SignIn} loading={busy} className="w-full">
               {busy ? 'Signing in…' : 'Sign in'}
-            </button>
-          </form>
+            </Button>
+          </motion.form>
 
           {/* Dev-only credential hint */}
           {import.meta.env.DEV && (
@@ -138,7 +126,7 @@ export default function Login() {
               <p className="font-semibold text-ink-soft">
                 Demo accounts · password <span className="font-mono">Apex@1234</span>
               </p>
-              <p><span className="font-mono">hr@noblediagnostics.in</span> · Noble (Qugen)</p>
+              <p><span className="font-mono">hr@noblediagnostics.in</span> · Noble Diagnostics</p>
               <p><span className="font-mono">hr@areshealthcare.in</span> · Ares</p>
               <p><span className="font-mono">admin@stellarapex.local</span> · super admin (both)</p>
             </div>

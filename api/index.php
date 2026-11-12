@@ -9,6 +9,9 @@ require_once __DIR__ . '/src/auth.php';
 require_once __DIR__ . '/src/audit.php';
 require_once __DIR__ . '/src/employees.php';
 require_once __DIR__ . '/src/onboarding.php';
+require_once __DIR__ . '/src/org.php';
+require_once __DIR__ . '/src/attendance.php';
+require_once __DIR__ . '/src/payroll.php';
 
 set_exception_handler(function (Throwable $e) {
     error_log('[api] ' . $e->getMessage());
@@ -106,14 +109,14 @@ if ($method === 'POST' && $path === '/onboard') {
 if ($method === 'GET' && $path === '/onboarding') {
     $user = require_auth();
     require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
-    json_response(list_onboarding());
+    json_response(list_onboarding(resolve_entity($user)));
 }
 
 if (count($segments) === 4 && $segments[0] === 'onboarding' && $segments[2] === 'photo' && $method === 'GET') {
     $user = require_auth();
     require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
-    $row = get_onboarding_row($segments[1]);
-    if (!$row) json_error('Not found', 404);
+    $row = get_onboarding_row(resolve_entity($user), $segments[1]);
+    if (!$row) json_error('Not found', 404); // another entity's submission => 404
     $which = $segments[3]; // aadhaar_front | aadhaar_back | pan_front | pan_back
     if (!in_array($which, array_values(ONBOARD_PHOTOS), true)) json_error('Not found', 404);
     $file = $row[$which . '_photo'] ?? null;
@@ -159,12 +162,12 @@ if ($method === 'GET' && $path === '/me') {
     json_response(['user' => ['name' => $user['name'], 'role' => $user['role'], 'entity' => $user['entity_id']]]);
 }
 
-if ($method === 'GET' && $path === '/reference') {
-    require_auth();
-    $entities = db()->query('SELECT * FROM entities')->fetchAll();
-    $branches = db()->query('SELECT entity_id, name, is_head_office FROM branches')->fetchAll();
-    json_response(['entities' => $entities, 'branches' => $branches]);
-}
+// ---- reference data, settings, org masters; onboarding actions; attendance; payroll ----
+// Each handler responds and exits when the route is its own, else returns.
+route_org($method, $path, $segments);
+route_onboarding_actions($method, $path, $segments);
+route_attendance($method, $path, $segments);
+route_payroll($method, $path, $segments);
 
 // ---- /employees ----
 if ($path === '/employees' && $method === 'GET') {
@@ -188,6 +191,7 @@ if ($path === '/employees' && $method === 'POST') {
     $stmt->execute([$entityId]);
     $prefix = $stmt->fetch()['code'];
     $created = create_employee($entityId, $prefix, $body);
+    remember_designation($entityId, $body['designation'] ?? null);
     audit((int) $user['id'], $entityId, $created['id'], 'create', null, ['code' => $created['code']]);
     json_response($created, 201);
 }
@@ -224,7 +228,7 @@ if (count($segments) >= 2 && $segments[0] === 'employees') {
         $existing = get_row($entityId, $id);
         if (!$existing) json_error('Not found', 404);
         $body = json_body();
-        if ($err = validate_employee($body, $entityId, true)) json_error($err, 422);
+        if ($err = validate_employee($body, $entityId, true, $id)) json_error($err, 422);
         // Merge over existing IN CLEARTEXT so a partial PUT preserves omitted
         // sensitive fields (row_to_api alone would carry masks).
         $base = array_merge(row_to_api($existing), decrypt_sensitive($existing));
@@ -235,7 +239,8 @@ if (count($segments) >= 2 && $segments[0] === 'employees') {
             }
         }
         $updated = update_employee($entityId, $id, $merged);
-        audit((int) $user['id'], $entityId, $id, 'update');
+        remember_designation($entityId, $merged['designation'] ?? null);
+        audit((int) $user['id'], $entityId, $id, 'update', null, ['fields' => array_keys($body)]);
         json_response($updated);
     }
 

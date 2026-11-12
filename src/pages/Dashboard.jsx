@@ -12,21 +12,21 @@ import {
 } from '@phosphor-icons/react'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
-import { completeness, cx, fmtDate, tenure } from '../lib/utils'
+import { completeness, cx, fmtDate, payrollBlockers, tenure } from '../lib/utils'
+import { stagger } from '../lib/motion'
 import { Avatar, EmptyState, SectionCard, StatusPill } from '../components/ui'
+import { AnimatedNumber, SkeletonRows } from '../components/kit'
 import { HBarList, Stat, TrendBars } from '../components/charts'
 
-/* Payroll-blocking fields present? (mirrors the Payroll page rule) */
-const payrollReady = (e) =>
-  !!(e.pan && e.bank?.accountNumber && e.bank?.ifsc &&
-    (e.uan || ['Consultant', 'Intern'].includes(e.employmentType)))
+/* Payroll-blocking fields present? (same rule the People filter uses) */
+const payrollReady = (e) => payrollBlockers(e).length === 0
 
 const topN = (map, n) =>
   [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n)
     .map(([label, value]) => ({ label, value }))
 
 export default function Dashboard() {
-  const { employees } = useEmployees()
+  const { employees, loading } = useEmployees()
   const { entity } = useEntity()
   const navigate = useNavigate()
 
@@ -108,10 +108,10 @@ export default function Dashboard() {
   }, [active])
 
   const attention = [
-    { icon: Hourglass, label: 'On probation', n: probation.length, tone: 'text-amber-ink bg-amber-soft', to: '/people' },
-    { icon: DoorOpen, label: 'Serving notice', n: notice.length, tone: 'text-rose-ink bg-rose-soft', to: '/people' },
-    { icon: IdentificationCard, label: 'Incomplete profiles', n: incomplete.length, tone: 'text-accent-text bg-accent-soft', to: '/people' },
-    { icon: ChartBar, label: 'Not payroll-ready', n: notReady.length, tone: 'text-accent-text bg-accent-soft', to: '/payroll' },
+    { icon: Hourglass, label: 'On probation', n: probation.length, tone: 'text-amber-ink bg-amber-soft', to: '/people?status=probation' },
+    { icon: DoorOpen, label: 'Serving notice', n: notice.length, tone: 'text-rose-ink bg-rose-soft', to: '/people?status=notice' },
+    { icon: IdentificationCard, label: 'Incomplete profiles', n: incomplete.length, tone: 'text-accent-text bg-accent-soft', to: '/people?need=incomplete' },
+    { icon: ChartBar, label: 'Not payroll-ready', n: notReady.length, tone: 'text-accent-text bg-accent-soft', to: '/people?need=payroll' },
   ]
 
   if (roster.length === 0) {
@@ -119,11 +119,17 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto">
         <h1 className="font-display text-[28px] font-bold tracking-tight">Dashboard</h1>
         <div className="bg-surface rounded-2xl border border-hairline shadow-card mt-5">
-          <EmptyState
-            icon={UserPlus}
-            title="Nothing to report yet"
-            hint="Add people to the register and this dashboard fills itself in."
-          />
+          {loading ? (
+            <div className="p-5">
+              <SkeletonRows rows={5} />
+            </div>
+          ) : (
+            <EmptyState
+              icon={UserPlus}
+              title="Nothing to report yet"
+              hint="Add people to the register and this dashboard fills itself in."
+            />
+          )}
         </div>
       </div>
     )
@@ -140,18 +146,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5"
-      >
+      {/* Cards arrive one after another; each SectionCard is a stagger child. */}
+      <motion.div variants={stagger(0.05)} initial="initial" animate="animate" className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
         {/* ---- Workforce trend ---- */}
         <SectionCard title="Workforce" className="lg:col-span-2">
           <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
             <Stat
               label="Headcount"
-              value={active.length}
+              value={<AnimatedNumber value={active.length} />}
               delta={netChange === 0 ? null : netChange > 0 ? `+${netChange}` : `${netChange}`}
               deltaTone={netChange >= 0 ? 'mint' : 'rose'}
               hint="past 12 months"
@@ -169,14 +171,16 @@ export default function Dashboard() {
               <li key={label}>
                 <button
                   onClick={() => navigate(to)}
-                  className="w-full flex items-center gap-3 rounded-[10px] px-2 py-2 hover:bg-slate-soft/70 active:scale-[0.99] transition-all cursor-pointer text-left"
+                  className="group w-full flex items-center gap-3 rounded-[10px] px-2 py-2 hover:bg-slate-soft/70 active:scale-[0.99] transition-[background-color,transform] duration-[var(--dur-fast)] cursor-pointer text-left"
                 >
                   <span className={cx('size-8 rounded-[10px] grid place-items-center shrink-0', tone)}>
                     <Icon size={15} weight="fill" />
                   </span>
                   <span className="text-[13px] font-medium flex-1">{label}</span>
-                  <span className="font-mono text-[13px] font-semibold tabular-nums">{n}</span>
-                  <ArrowRight size={13} className="text-ink-faint" />
+                  <span className="font-mono text-[13px] font-semibold">
+                    <AnimatedNumber value={n} />
+                  </span>
+                  <ArrowRight size={13} className="text-ink-faint transition-transform duration-[var(--dur-base)] group-hover:translate-x-0.5 group-hover:text-ink" />
                 </button>
               </li>
             ))}

@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   ArrowLeft,
   Bank,
+  PencilSimple,
+  Wallet,
   EnvelopeSimple,
   FileText,
   MapPin,
@@ -35,13 +37,29 @@ import {
   StatusPill,
 } from '../components/ui'
 import OrgRelations from '../components/OrgRelations'
+import { Compensation } from '../components/SalaryStructure'
+import { Button, SkeletonRows, Tabs } from '../components/kit'
+import { useReference } from '../store/ReferenceStore'
+import { useAuth } from '../store/AuthContext'
+import { canEdit } from '../lib/utils'
+import { fadeUp } from '../lib/motion'
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: User },
   { id: 'job', label: 'Job & Org', icon: UsersThree },
   { id: 'statutory', label: 'Statutory & Bank', icon: Bank },
+  { id: 'compensation', label: 'Compensation', icon: Wallet, staff: true },
   { id: 'documents', label: 'Documents', icon: FileText },
 ]
+
+/* Which checklist documents the record itself can vouch for. The rest have
+   no upload yet, so they are shown as not tracked rather than guessed. */
+const DOC_ON_RECORD = {
+  pan: (e) => !!e.pan,
+  aadhaar: (e) => !!e.aadhaar,
+  photo: (e) => !!e.photo,
+  bank: (e) => !!e.bank?.accountNumber,
+}
 
 /* ---------------- Timeline ---------------- */
 function Timeline({ e }) {
@@ -102,13 +120,22 @@ export default function Profile() {
   const navigate = useNavigate()
   const { byId, reveal, loading } = useEmployees()
   const { entity } = useEntity()
+  const { headOffice } = useReference()
+  const { user } = useAuth()
   const [tab, setTab] = useState('overview')
+  const staff = canEdit(user)
 
   const e = byId(id)
 
   // Roster still loading (e.g. hard refresh) — don't flash "not found".
   if (!e && loading) {
-    return <div className="max-w-3xl mx-auto text-center py-20 text-ink-faint text-[13px]">Loading…</div>
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-surface rounded-2xl border border-hairline shadow-card p-6 mt-9">
+          <SkeletonRows rows={3} />
+        </div>
+      </div>
+    )
   }
 
   /* Entity isolation: a record from another portal is indistinguishable
@@ -125,7 +152,7 @@ export default function Profile() {
   }
 
   const comp = completeness(e)
-  const isHQ = e.branch === entity.headOffice
+  const isHQ = e.branch === headOffice
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -137,12 +164,7 @@ export default function Profile() {
       </button>
 
       {/* ---- Header card ---- */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="bg-surface rounded-2xl border border-hairline shadow-card p-6"
-      >
+      <motion.div {...fadeUp} className="bg-surface rounded-2xl border border-hairline shadow-card px-6 pt-6">
         <div className="flex flex-wrap items-start gap-5">
           <Avatar name={e.name} photo={e.photo} size={76} />
 
@@ -198,30 +220,22 @@ export default function Profile() {
               >
                 <Phone size={16} />
               </a>
+              {staff && (
+                <Button variant="secondary" icon={PencilSimple} onClick={() => navigate(`/people/${e.id}/edit`)} className="h-[38px]">
+                  Edit
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mt-6 -mb-2 overflow-x-auto">
-          {TABS.map(({ id: tid, label, icon: Icon }) => (
-            <button
-              key={tid}
-              onClick={() => setTab(tid)}
-              className={cx(
-                'inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold whitespace-nowrap transition-colors cursor-pointer',
-                tab === tid ? 'bg-accent-soft text-accent-text' : 'text-ink-faint hover:text-ink',
-              )}
-            >
-              <Icon size={14.5} weight={tab === tid ? 'fill' : 'regular'} />
-              {label}
-            </button>
-          ))}
-        </div>
+        {/* Tabs — the underline slides between them */}
+        <Tabs className="mt-5 border-b-0" tabs={TABS.filter((t) => !t.staff || staff)} value={tab} onChange={setTab} />
       </motion.div>
 
       {/* ---- Tab content ---- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div key={tab} {...fadeUp} className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
         {tab === 'overview' && (
           <>
             <SectionCard title="Personal" className="lg:col-span-1">
@@ -331,11 +345,11 @@ export default function Profile() {
                   <span className="text-amber-ink text-[12px] font-medium">Missing</span>
                 )}
               </ComplianceRow>
-              <ComplianceRow label="ESI" ok={!!e.esiNumber || !e.esiNumber}>
+              <ComplianceRow label="ESI" ok={!!e.esiNumber}>
                 {e.esiNumber ? (
                   <MaskedValue masked={`••••••${e.esiNumber.slice(-4)}`} revealed={e.esiNumber} />
                 ) : (
-                  <span className="text-ink-faint text-[12px]">Not eligible (wage &gt; ₹21,000)</span>
+                  <span className="text-ink-faint text-[12px]">No ESI number on file</span>
                 )}
               </ComplianceRow>
             </SectionCard>
@@ -356,32 +370,31 @@ export default function Profile() {
           </>
         )}
 
+        {tab === 'compensation' && staff && <Compensation employee={e} />}
+
         {tab === 'documents' && (
-          <SectionCard title="Document vault" className="lg:col-span-3">
+          <SectionCard title="Document checklist" className="lg:col-span-3">
             <p className="text-[12px] text-ink-faint -mt-1 mb-3">
-              Uploads land in Phase 2. This checklist tracks what has been collected.
+              Identity and bank details are read from this record. Other documents have no upload yet, so they are not tracked.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {DOCUMENT_TYPES.map((d, i) => {
-                /* Demo: mark a deterministic subset collected */
-                const collected = (e.id.charCodeAt(2) + i) % 3 !== 0
+              {DOCUMENT_TYPES.map((d) => {
+                const check = DOC_ON_RECORD[d.id]
+                const state = !check ? 'untracked' : check(e) ? 'collected' : 'pending'
                 return (
-                  <div
-                    key={d.id}
-                    className="flex items-center gap-3 rounded-xl border border-hairline p-3.5"
-                  >
+                  <div key={d.id} className="flex items-center gap-3 rounded-xl border border-hairline p-3.5">
                     <div
                       className={cx(
                         'size-9 rounded-[10px] grid place-items-center shrink-0',
-                        collected ? 'bg-mint-soft text-mint' : 'bg-amber-soft text-amber-ink',
+                        state === 'collected' ? 'bg-mint-soft text-mint' : state === 'pending' ? 'bg-amber-soft text-amber-ink' : 'bg-slate-soft text-ink-faint',
                       )}
                     >
-                      <FileText size={16} weight={collected ? 'fill' : 'regular'} />
+                      <FileText size={16} weight={state === 'collected' ? 'fill' : 'regular'} />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[13px] font-medium truncate">{d.label}</p>
-                      <p className={cx('text-[11.5px]', collected ? 'text-mint' : 'text-amber-ink')}>
-                        {collected ? 'Collected' : 'Pending'}
+                      <p className={cx('text-[11.5px]', state === 'collected' ? 'text-mint' : state === 'pending' ? 'text-amber-ink' : 'text-ink-faint')}>
+                        {state === 'collected' ? 'On record' : state === 'pending' ? 'Missing' : 'Not tracked yet'}
                       </p>
                     </div>
                   </div>
@@ -390,7 +403,8 @@ export default function Profile() {
             </div>
           </SectionCard>
         )}
-      </div>
+      </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

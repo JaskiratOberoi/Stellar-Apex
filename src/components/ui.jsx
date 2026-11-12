@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Eye, EyeSlash, CircleNotch } from '@phosphor-icons/react'
+import { DUR, EASE_OUT, item } from '../lib/motion'
 import { STATUSES } from '../data/seed'
 import { avatarTone, cx, initials } from '../lib/utils'
 
@@ -57,9 +59,7 @@ export function StatusPill({ status, className }) {
 /* ---------------- Card & fields ---------------- */
 export function SectionCard({ title, action, children, className }) {
   return (
-    <section
-      className={cx('bg-surface rounded-2xl border border-hairline shadow-card', className)}
-    >
+    <motion.section variants={item} className={cx('bg-surface rounded-2xl border border-hairline shadow-card', className)}>
       {title && (
         <header className="flex items-center justify-between px-5 pt-4 pb-1">
           <h3 className="font-display text-[15px] font-bold tracking-tight">{title}</h3>
@@ -67,7 +67,7 @@ export function SectionCard({ title, action, children, className }) {
         </header>
       )}
       <div className="px-5 pb-5 pt-2">{children}</div>
-    </section>
+    </motion.section>
   )
 }
 
@@ -131,14 +131,34 @@ export function MaskedValue({ masked, revealed, onReveal }) {
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[12.5px]">
-      {show && full ? full : masked || '—'}
+    <span className="relative inline-flex items-center gap-1.5 font-mono text-[12.5px]">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={show && full ? 'full' : 'masked'}
+          initial={{ opacity: 0, filter: 'blur(4px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)', transition: { duration: DUR.base, ease: EASE_OUT } }}
+          exit={{ opacity: 0, filter: 'blur(4px)', transition: { duration: DUR.fast } }}
+        >
+          {show && full ? full : masked || '—'}
+        </motion.span>
+      </AnimatePresence>
+      {/* Drains over the 10 seconds before the value hides itself again. */}
+      {show && full && (
+        <motion.span
+          aria-hidden
+          className="absolute -bottom-1 left-0 right-5 h-px bg-accent origin-left"
+          initial={{ scaleX: 1 }}
+          animate={{ scaleX: 0 }}
+          transition={{ duration: 10, ease: 'linear' }}
+        />
+      )}
       <button
         type="button"
         onClick={toggle}
         disabled={loading}
-        className="text-ink-faint hover:text-accent transition-colors cursor-pointer disabled:opacity-50"
+        className="text-ink-faint hover:text-accent active:scale-90 transition-[color,transform] cursor-pointer disabled:opacity-50"
         title={show ? 'Hide' : 'Reveal'}
+        aria-label={show ? 'Hide value' : 'Reveal value'}
       >
         {loading ? (
           <CircleNotch size={13} className="animate-spin" />
@@ -161,7 +181,7 @@ export function ProgressRing({ pct, size = 44 }) {
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-hairline)" strokeWidth="4" />
-        <circle
+        <motion.circle
           cx={size / 2}
           cy={size / 2}
           r={r}
@@ -170,7 +190,9 @@ export function ProgressRing({ pct, size = 44 }) {
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - pct / 100)}
+          initial={{ strokeDashoffset: c }}
+          animate={{ strokeDashoffset: c * (1 - pct / 100) }}
+          transition={{ duration: 0.7, ease: EASE_OUT, delay: 0.1 }}
         />
       </svg>
       <span className="absolute text-[11px] font-bold font-mono" style={{ color: tone }}>

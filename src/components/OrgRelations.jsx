@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowElbowRightUp, CaretDown, Plus, UserMinus, UsersThree } from '@phosphor-icons/react'
 import { useEmployees } from '../store/EmployeeStore'
 import { useEntity } from '../store/EntityContext'
 import { ancestorIds, buildForest, descendantIds } from '../lib/org'
-import { cx } from '../lib/utils'
+import { useAuth } from '../store/AuthContext'
+import { canEdit, cx } from '../lib/utils'
+import { listItem } from '../lib/motion'
 import { Avatar, SectionCard } from './ui'
+import { useToast } from './kit'
 
 /**
  * Editable reporting relationships for one employee:
@@ -18,7 +22,11 @@ import { Avatar, SectionCard } from './ui'
 export default function OrgRelations({ employee }) {
   const { employees, updateEmployee } = useEmployees()
   const { entity } = useEntity()
+  const { user } = useAuth()
+  const toast = useToast()
+  const editable = canEdit(user)
   const [addingReportee, setAddingReportee] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const roster = useMemo(
     () => employees.filter((e) => e.company === entity.id),
@@ -50,12 +58,25 @@ export default function OrgRelations({ employee }) {
     [roster, employee.id, anc],
   )
 
-  const setManager = (id) => updateEmployee({ id: employee.id, reportsTo: id || null })
+  // Every change is saved straight away; say so, and say when it fails.
+  const save = async (patch, message) => {
+    setSaving(true)
+    try {
+      await updateEmployee(patch)
+      toast.success(message)
+    } catch (err) {
+      toast.error(err.message || 'Could not save the reporting line')
+    } finally {
+      setSaving(false)
+    }
+  }
+  const setManager = (id) =>
+    save({ id: employee.id, reportsTo: id || null }, id ? `${employee.name} now reports to ${byId.get(id)?.name}` : 'Manager removed')
   const addReportee = (id) => {
-    if (id) updateEmployee({ id, reportsTo: employee.id })
+    if (id) save({ id, reportsTo: employee.id }, `${byId.get(id)?.name} now reports to ${employee.name}`)
     setAddingReportee('')
   }
-  const removeReportee = (id) => updateEmployee({ id, reportsTo: null })
+  const removeReportee = (id) => save({ id, reportsTo: null }, `${byId.get(id)?.name} no longer reports to ${employee.name}`)
 
   const selectCls =
     'w-full h-9 appearance-none rounded-[10px] border border-hairline bg-surface pl-3 pr-8 text-[13px] font-medium outline-none cursor-pointer focus:border-accent focus:ring-2 focus:ring-accent/15'
@@ -71,7 +92,9 @@ export default function OrgRelations({ employee }) {
           <select
             value={employee.reportsTo || ''}
             onChange={(e) => setManager(e.target.value)}
-            className={cx(selectCls, !employee.reportsTo && 'text-ink-faint')}
+            disabled={!editable || saving}
+            aria-label="Reports to"
+            className={cx(selectCls, !employee.reportsTo && 'text-ink-faint', 'disabled:opacity-60 disabled:cursor-not-allowed transition-[border-color,opacity]')}
           >
             <option value="">No manager (top level)</option>
             {managerOptions.map((m) => (
@@ -108,9 +131,12 @@ export default function OrgRelations({ employee }) {
 
         {reports.length > 0 ? (
           <div className="space-y-1.5">
+            <AnimatePresence initial={false} mode="popLayout">
             {reports.map((r) => (
-              <div
+              <motion.div
                 key={r.id}
+                layout
+                {...listItem}
                 className="group flex items-center gap-2.5 rounded-xl border border-hairline p-2"
               >
                 <Link to={`/people/${r.id}`} className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -122,27 +148,34 @@ export default function OrgRelations({ employee }) {
                     <p className="text-[11px] text-ink-faint truncate">{r.designation}</p>
                   </div>
                 </Link>
-                <button
-                  onClick={() => removeReportee(r.id)}
-                  className="p-1.5 rounded-lg text-ink-faint hover:text-rose-ink hover:bg-rose-soft transition-colors cursor-pointer shrink-0"
-                  title="Remove as report"
-                >
-                  <UserMinus size={14} />
-                </button>
-              </div>
+                {editable && (
+                  <button
+                    onClick={() => removeReportee(r.id)}
+                    disabled={saving}
+                    className="p-1.5 rounded-lg text-ink-faint hover:text-rose-ink hover:bg-rose-soft active:scale-90 transition-[color,background-color,transform] cursor-pointer shrink-0 disabled:opacity-50"
+                    title="Remove as report"
+                    aria-label={`Remove ${r.name} as a report`}
+                  >
+                    <UserMinus size={14} />
+                  </button>
+                )}
+              </motion.div>
             ))}
+            </AnimatePresence>
           </div>
         ) : (
           <p className="text-[12.5px] text-ink-faint">No direct reports.</p>
         )}
 
         {/* Add reportee */}
-        {reporteeOptions.length > 0 && (
+        {editable && reporteeOptions.length > 0 && (
           <div className="relative mt-2">
             <select
               value={addingReportee}
               onChange={(e) => addReportee(e.target.value)}
-              className={cx(selectCls, 'text-ink-faint pl-8')}
+              disabled={saving}
+              aria-label="Add a report"
+              className={cx(selectCls, 'text-ink-faint pl-8 disabled:opacity-60')}
             >
               <option value="">Add a report…</option>
               {reporteeOptions.map((r) => (

@@ -14,7 +14,7 @@ bcrypt passwords, atomic per-entity code generation, and an append-only audit lo
 From the **repo root**:
 
 ```sh
-docker compose up -d --build     # apex_db (MySQL) + apex_php (PHP/Apache on :8080)
+docker compose -p stellar-apex-dev up -d --build   # apex_db (MySQL) + apex_php (PHP/Apache on :8080)
 npm run dev                      # Vite on :5173, proxies /api -> :8080
 docker compose logs -f apex_php  # app logs / demo seeding
 docker compose down -v           # stop + wipe DB (fresh seed next up)

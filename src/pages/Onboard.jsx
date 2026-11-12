@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Camera,
+  Check,
   CheckCircle,
   CircleNotch,
   IdentificationCard,
@@ -12,6 +13,7 @@ import {
 } from '@phosphor-icons/react'
 import { API_BASE } from '../lib/api'
 import { cx } from '../lib/utils'
+import { DUR, EASE_OUT, collapse, fadeUp, pop, spring } from '../lib/motion'
 import { NobleMark } from '../components/logos'
 
 /**
@@ -78,6 +80,12 @@ function CameraModal({ title, onCapture, onClose }) {
     }
   }, [])
 
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const snap = () => {
     const v = videoRef.current
     if (!v || !v.videoWidth) return
@@ -96,8 +104,18 @@ function CameraModal({ title, onCapture, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4" onClick={onClose}>
-      <div
+    <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: DUR.base } }}
+      className="fixed inset-0 z-50 grid place-items-center bg-ink/70 px-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: DUR.slow, ease: EASE_OUT } }}
         className="w-full max-w-lg bg-surface-high rounded-2xl shadow-pop overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -118,13 +136,13 @@ function CameraModal({ title, onCapture, onClose }) {
           <button
             onClick={snap}
             disabled={!!error || !ready}
-            className="inline-flex items-center gap-2 h-10 px-5 rounded-[10px] bg-accent hover:bg-accent-deep disabled:opacity-50 text-white text-[13.5px] font-semibold transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 h-10 px-5 rounded-[10px] bg-accent enabled:hover:bg-accent-deep enabled:active:scale-95 disabled:opacity-50 text-white text-[13.5px] font-semibold transition-[background-color,transform] duration-[var(--dur-fast)] enabled:cursor-pointer"
           >
             <Camera size={16} weight="bold" /> Capture
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -163,9 +181,13 @@ function PhotoSide({ doc, side, file, onChange }) {
   return (
     <div>
       <span className="block text-[11.5px] font-semibold text-ink-soft mb-1">{side}</span>
+      <AnimatePresence mode="wait" initial={false}>
       {preview ? (
-        <div className="relative rounded-[10px] border border-hairline bg-surface-high overflow-hidden">
+        <motion.div key="preview" {...pop} className="relative rounded-[10px] border border-mint/50 bg-surface-high overflow-hidden">
           <img src={preview} alt={title} className="h-24 w-full object-cover" />
+          <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-md bg-mint text-white text-[10.5px] font-bold px-1.5 py-0.5">
+            <Check size={10} weight="bold" /> Added
+          </span>
           <button
             type="button"
             onClick={() => onChange(null)}
@@ -174,25 +196,26 @@ function PhotoSide({ doc, side, file, onChange }) {
           >
             <Trash size={14} />
           </button>
-        </div>
+        </motion.div>
       ) : (
-        <div className="grid gap-1.5">
+        <motion.div key="choose" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: DUR.base } }} exit={{ opacity: 0, transition: { duration: DUR.fast } }} className="grid gap-1.5">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="h-[46px] rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 text-ink-soft flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors cursor-pointer"
+            className="h-[46px] rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 active:scale-[0.98] text-ink-soft flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-[border-color,background-color,transform] duration-[var(--dur-fast)] cursor-pointer"
           >
             <UploadSimple size={15} /> Upload
           </button>
           <button
             type="button"
             onClick={() => setCamera(true)}
-            className="h-[46px] rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 text-ink-soft flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-colors cursor-pointer"
+            className="h-[46px] rounded-[10px] border-2 border-dashed border-hairline-strong hover:border-accent hover:bg-accent-soft/40 active:scale-[0.98] text-ink-soft flex items-center justify-center gap-1.5 text-[12px] font-semibold transition-[border-color,background-color,transform] duration-[var(--dur-fast)] cursor-pointer"
           >
             <Camera size={15} /> Take photo
           </button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* On phones the picker itself offers the camera too */}
       <input
@@ -206,7 +229,13 @@ function PhotoSide({ doc, side, file, onChange }) {
           e.target.value = ''
         }}
       />
-      {err && <p className="text-[11.5px] text-rose-ink mt-1">{err}</p>}
+      <AnimatePresence initial={false}>
+        {err && (
+          <motion.p key="err" {...collapse} role="alert" className="overflow-hidden text-[11.5px] text-rose-ink">
+            <span className="block pt-1">{err}</span>
+          </motion.p>
+        )}
+      </AnimatePresence>
       {camera && <CameraModal title={title} onCapture={accept} onClose={() => setCamera(false)} />}
     </div>
   )
@@ -247,8 +276,14 @@ export default function Onboard() {
   const [done, setDone] = useState(false)
 
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }))
-  const valid =
-    f.name.trim() && f.designation && aadhaarFront && aadhaarBack && panFront && panBack
+  const photoCount = [aadhaarFront, aadhaarBack, panFront, panBack].filter(Boolean).length
+  // What still stands between the person and the Submit button, in order.
+  const missing = [
+    !f.name.trim() && 'your full name',
+    !f.designation && 'a designation',
+    photoCount < 4 && `${4 - photoCount} more document ${4 - photoCount === 1 ? 'photo' : 'photos'}`,
+  ].filter(Boolean)
+  const valid = missing.length === 0
 
   const submit = async (e) => {
     e.preventDefault()
@@ -297,13 +332,12 @@ export default function Onboard() {
           </div>
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
         {done ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-surface rounded-2xl border border-hairline shadow-card p-8 text-center"
-          >
-            <CheckCircle size={44} weight="fill" className="text-mint mx-auto mb-3" />
+          <motion.div key="done" {...fadeUp} className="bg-surface rounded-2xl border border-hairline shadow-card p-8 text-center">
+            <motion.div initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...spring, delay: 0.12 }} className="w-fit mx-auto mb-3">
+              <CheckCircle size={48} weight="fill" className="text-mint" />
+            </motion.div>
             <h1 className="font-display text-[20px] font-bold tracking-tight">Details submitted</h1>
             <p className="text-[13.5px] text-ink-soft mt-2 max-w-sm mx-auto">
               Thank you — the Noble Diagnostics HR team has received the details and will complete
@@ -311,15 +345,15 @@ export default function Onboard() {
             </p>
             <button
               onClick={reset}
-              className="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-[10px] border border-hairline bg-surface-high hover:border-hairline-strong text-[13px] font-semibold transition-colors cursor-pointer"
+              className="mt-5 inline-flex items-center gap-2 h-10 px-4 rounded-[10px] border border-hairline bg-surface-high hover:border-hairline-strong active:scale-[0.97] text-[13px] font-semibold transition-[border-color,transform] duration-[var(--dur-fast)] cursor-pointer"
             >
               Submit another person
             </button>
           </motion.div>
         ) : (
           <motion.form
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            key="form"
+            {...fadeUp}
             onSubmit={submit}
             className="bg-surface rounded-2xl border border-hairline shadow-card p-6 sm:p-7"
           >
@@ -403,14 +437,36 @@ export default function Onboard() {
               </div>
             </div>
 
-            {error && (
-              <p className="mt-4 text-[12.5px] text-rose-ink bg-rose-soft rounded-lg px-3 py-2">{error}</p>
-            )}
+            <AnimatePresence initial={false}>
+              {error && (
+                <motion.div key="error" {...collapse} className="overflow-hidden" role="alert">
+                  <p className="mt-4 text-[12.5px] text-rose-ink bg-rose-soft rounded-lg px-3 py-2">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Progress toward a complete form: four photos is the long part. */}
+            <div className="mt-5" aria-live="polite">
+              <div className="flex items-center justify-between text-[11.5px] mb-1.5">
+                <span className={cx('font-semibold', valid ? 'text-mint' : 'text-ink-soft')}>
+                  {valid ? 'Ready to submit' : `Still needed: ${missing.join(', ')}`}
+                </span>
+                <span className="font-mono text-ink-faint shrink-0 ml-3">{photoCount}/4 photos</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-slate-soft overflow-hidden">
+                <motion.div
+                  className={cx('h-full rounded-full', valid ? 'bg-mint' : 'bg-accent')}
+                  initial={false}
+                  animate={{ width: `${((photoCount + (f.name.trim() ? 1 : 0) + (f.designation ? 1 : 0)) / 6) * 100}%` }}
+                  transition={{ duration: DUR.slow, ease: EASE_OUT }}
+                />
+              </div>
+            </div>
 
             <button
               type="submit"
               disabled={!valid || busy}
-              className="mt-5 w-full h-11 inline-flex items-center justify-center gap-2 rounded-[10px] bg-accent hover:bg-accent-deep disabled:opacity-50 text-white text-[14px] font-semibold transition-colors cursor-pointer"
+              className="mt-3 w-full h-11 inline-flex items-center justify-center gap-2 rounded-[10px] bg-accent enabled:hover:bg-accent-deep enabled:active:scale-[0.98] disabled:bg-slate-soft disabled:text-ink-faint disabled:cursor-not-allowed text-white text-[14px] font-semibold transition-[background-color,transform] duration-[var(--dur-fast)] enabled:cursor-pointer"
             >
               {busy ? <CircleNotch size={17} className="animate-spin" /> : <PaperPlaneTilt size={17} />}
               {busy ? 'Submitting…' : 'Submit details'}
@@ -421,9 +477,10 @@ export default function Onboard() {
             </p>
           </motion.form>
         )}
+        </AnimatePresence>
 
         <p className="text-[11px] text-ink-faint text-center mt-6">
-          Noble Diagnostics Pvt. Ltd. · Powered by Stellar Apex People OS
+          Noble Diagnostics · Qugen Pathlabs Pvt. Ltd. · Powered by Stellar Apex People OS
         </p>
       </div>
     </div>

@@ -8,12 +8,12 @@ export default defineConfig({
   server: {
     port: 5173,
     // Proxy /api to the local backend container so the browser talks to a
-    // single origin. The dev stack was retired — the prod stack (apex_php_prod,
-    // host port 8090) is the local backend now. CAUTION: dev writes hit the
-    // production DB; use VITE_API_PROXY to point elsewhere if needed.
+    // single origin. Targets the DEV stack (docker-compose.yml, host port 8080,
+    // started with `docker compose -p stellar-apex-dev up -d`). The prod stack
+    // listens on 8090: never point dev at it. VITE_API_PROXY overrides.
     proxy: {
       '/api': {
-        target: process.env.VITE_API_PROXY || 'http://localhost:8090',
+        target: process.env.VITE_API_PROXY || 'http://localhost:8080',
         changeOrigin: true,
       },
     },

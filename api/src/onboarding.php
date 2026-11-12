@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/employees.php'; // ulid()
+require_once __DIR__ . '/employees.php'; // ulid(), get_row()
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/audit.php';
 
 /* Public field-onboarding submissions. Photos are stored OUTSIDE the web root
    (uploads_dir) and are only ever served through the auth-gated photo route. */
@@ -67,17 +69,48 @@ function onboarding_row_to_api(array $r): array {
             'panBack'      => !empty($r['pan_back_photo']),
         ],
         'status'           => $r['status'],
+        'employeeId'       => $r['employee_id'] ?? null,
         'createdAt'        => $r['created_at'],
     ];
 }
 
-function list_onboarding(): array {
-    $rows = db()->query('SELECT * FROM onboarding_submissions ORDER BY created_at DESC LIMIT 500')->fetchAll();
-    return array_map('onboarding_row_to_api', $rows);
+// Both lookups take the caller's entity: a submission (and its Aadhaar/PAN
+// photos) is only ever visible inside the portal it was submitted to.
+// $entityId is optional only so a request racing a deploy cannot fatal.
+function list_onboarding(?string $entityId = null): array {
+    if ($entityId === null) return [];
+    $stmt = db()->prepare('SELECT * FROM onboarding_submissions WHERE entity_id = ? ORDER BY created_at DESC LIMIT 500');
+    $stmt->execute([$entityId]);
+    return array_map('onboarding_row_to_api', $stmt->fetchAll());
 }
 
-function get_onboarding_row(string $id): ?array {
-    $stmt = db()->prepare('SELECT * FROM onboarding_submissions WHERE id = ?');
-    $stmt->execute([$id]);
+function get_onboarding_row(string $entityId, ?string $id = null): ?array {
+    if ($id === null) return null;
+    $stmt = db()->prepare('SELECT * FROM onboarding_submissions WHERE id = ? AND entity_id = ?');
+    $stmt->execute([$id, $entityId]);
     return $stmt->fetch() ?: null;
+}
+
+// PUT /onboarding/:id { status, employeeId? } — mark a submission processed
+// (optionally linking the employee created from it), rejected, or pending again.
+function route_onboarding_actions(string $method, string $path, array $segments): void {
+    if (count($segments) !== 2 || $segments[0] !== 'onboarding' || $method !== 'PUT') return;
+    $user = require_auth();
+    require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
+    $entityId = resolve_entity($user);
+    $row = get_onboarding_row($entityId, $segments[1]);
+    if (!$row) json_error('Not found', 404);
+    $b = json_body();
+    $status = $b['status'] ?? '';
+    if (!in_array($status, ['pending', 'processed', 'rejected'], true)) json_error('Invalid status', 422);
+    $employeeId = $b['employeeId'] ?? null;
+    if ($employeeId !== null && !get_row($entityId, $employeeId)) json_error('Unknown employee', 422);
+    if (array_key_exists('employee_id', $row)) {
+        db()->prepare('UPDATE onboarding_submissions SET status = ?, employee_id = COALESCE(?, employee_id) WHERE id = ?')
+            ->execute([$status, $employeeId, $row['id']]);
+    } else {
+        db()->prepare('UPDATE onboarding_submissions SET status = ? WHERE id = ?')->execute([$status, $row['id']]);
+    }
+    audit((int) $user['id'], $entityId, $employeeId, "onboard_$status", null, ['submission' => $row['id']]);
+    json_response(onboarding_row_to_api(get_onboarding_row($entityId, $row['id'])));
 }

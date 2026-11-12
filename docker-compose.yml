@@ -46,6 +46,8 @@ services:
       DB_PASSWORD: ${MYSQL_PASSWORD:-apexpass}
       JWT_SECRET: ${JWT_SECRET:-dev-only-change-me-jwt-secret}
       JWT_TTL: ${JWT_TTL:-28800}
+      UPLOADS_DIR: /var/uploads
+      SEED_MODE: demo
       ENC_KEY: ${ENC_KEY:-0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0}
     ports:
       - "${PHP_HOST_PORT:-8080}:80"

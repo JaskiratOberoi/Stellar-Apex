@@ -3,8 +3,8 @@
 
 -- Entities
 INSERT INTO entities (id, name, brand, legal_name, code, head_office) VALUES
-  ('noble','Noble','Qugen','Noble Diagnostics Pvt. Ltd.','NBL','Qugen (Delhi)'),
-  ('ares','Ares',NULL,'Ares Healthcare Pvt. Ltd.','ARS','Head Office')
+  ('noble','Noble','Noble Diagnostics','Qugen Pathlabs Pvt. Ltd.','NBL','Qugen (Delhi)'),
+  ('ares','Ares',NULL,'Ares Labs LLP','ARS','Head Office')
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 INSERT INTO code_counters (entity_id, next_seq) VALUES ('noble',1),('ares',1)

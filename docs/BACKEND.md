@@ -19,8 +19,8 @@ the software owner (branding only) — it is **not** a data entity. There are tw
 
 | Entity | Brand | Legal name | Code prefix | Head office |
 |---|---|---|---|---|
-| `noble` | Qugen | Noble Diagnostics Pvt. Ltd. | `NBL` | Qugen (Delhi) |
-| `ares` | — | Ares Healthcare Pvt. Ltd. | `ARS` | Head Office |
+| `noble` | Noble Diagnostics | Qugen Pathlabs Pvt. Ltd. | `NBL` | Qugen (Delhi) |
+| `ares` | — | Ares Labs LLP | `ARS` | Head Office |
 
 **The single most important rule: a Noble user must never be able to read or write
 Ares data, and vice-versa.** The frontend has a "portal picker" today, but that is
@@ -213,8 +213,8 @@ CREATE TABLE audit_log (
 
 ```sql
 INSERT INTO entities (id, name, brand, legal_name, code, head_office) VALUES
-  ('noble','Noble','Qugen','Noble Diagnostics Pvt. Ltd.','NBL','Qugen (Delhi)'),
-  ('ares','Ares',NULL,'Ares Healthcare Pvt. Ltd.','ARS','Head Office');
+  ('noble','Noble','Noble Diagnostics','Qugen Pathlabs Pvt. Ltd.','NBL','Qugen (Delhi)'),
+  ('ares','Ares',NULL,'Ares Labs LLP','ARS','Head Office');
 
 INSERT INTO code_counters (entity_id, next_seq) VALUES ('noble',1),('ares',1);
 

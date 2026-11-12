@@ -20,14 +20,22 @@ export function AuthProvider({ children }) {
         setReady(true)
         return
       }
-      try {
-        const { user } = await apiFetch('/me')
-        if (active) setUser(user)
-      } catch {
-        clearToken()
-      } finally {
-        if (active) setReady(true)
+      // Only a rejected token (401) ends the session. A network blip or a
+      // server hiccup is retried, and never throws the sign-in away.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const { user } = await apiFetch('/me')
+          if (active) setUser(user)
+          break
+        } catch (err) {
+          if (err?.status === 401) {
+            clearToken()
+            break
+          }
+          if (attempt < 2) await new Promise((r) => setTimeout(r, 700 * (attempt + 1)))
+        }
       }
+      if (active) setReady(true)
     }
     restore()
     return () => {

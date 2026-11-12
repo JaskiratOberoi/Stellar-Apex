@@ -51,6 +51,28 @@
   --color-ares-soft: #f4ecd7;
   --color-ares-gold: #d4af37;
 
+  /* Motion — one easing family, three speeds. JS mirrors these in
+     src/lib/motion.js. fast = hover/press, base = state change,
+     slow = overlays and page changes. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pop: pop var(--dur-base) var(--ease-out);
+
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes pop {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
   --shadow-card: 0 1px 2px rgb(27 29 26 / 0.04), 0 8px 24px -12px rgb(27 29 26 / 0.10);
   --shadow-pop: 0 2px 6px rgb(27 29 26 / 0.05), 0 20px 44px -16px rgb(27 29 26 / 0.22);
 }
@@ -105,6 +127,69 @@ body::after {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* Portal re-brand: registering the accent and rail colours lets them
+   cross-fade when the entity changes instead of snapping. */
+@property --color-accent { syntax: "<color>"; inherits: true; initial-value: #1b6a4a; }
+@property --color-accent-deep { syntax: "<color>"; inherits: true; initial-value: #14523a; }
+@property --color-accent-soft { syntax: "<color>"; inherits: true; initial-value: #e2ede5; }
+@property --color-rail { syntax: "<color>"; inherits: true; initial-value: #0f231b; }
+@property --color-rail-soft { syntax: "<color>"; inherits: true; initial-value: #1b3329; }
+.portal-noble,
+.portal-ares {
+  transition:
+    --color-accent var(--dur-slow) var(--ease-in-out),
+    --color-accent-deep var(--dur-slow) var(--ease-in-out),
+    --color-accent-soft var(--dur-slow) var(--ease-in-out),
+    --color-rail var(--dur-slow) var(--ease-in-out),
+    --color-rail-soft var(--dur-slow) var(--ease-in-out);
+}
+
+/* Interactive defaults: every control eases the same way. */
+button,
+a,
+input,
+select,
+textarea {
+  transition-timing-function: var(--ease-out);
+}
+
+/* Loading placeholder */
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--color-slate-soft) 25%, var(--color-surface) 50%, var(--color-slate-soft) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Reduced motion: keep state changes legible, drop movement. Framer Motion
+   follows the same preference via <MotionConfig reducedMotion="user">. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton {
+    animation: none;
+    background: var(--color-slate-soft);
+  }
+}
+
+/* Print: payslips and sheets print without the app chrome. */
+@media print {
+  body::after,
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff;
+  }
 }
 
 /* Hairline scrollbars */

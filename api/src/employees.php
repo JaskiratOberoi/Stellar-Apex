@@ -3,6 +3,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/crypto.php';
 require_once __DIR__ . '/mask.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/org.php';
 
 /* ---------- ULID (Crockford base32, dependency-free) ---------- */
 function ulid(): string {
@@ -142,13 +143,18 @@ function branches_for(string $entityId): array {
     return array_column($stmt->fetchAll(), 'name');
 }
 
-// Returns an error string, or null if valid.
-function validate_employee(array $b, string $entityId, bool $partial = false): ?string {
+// Returns an error string, or null if valid. $selfId is the employee being
+// updated (null on create) so a reporting loop can be rejected.
+function validate_employee(array $b, string $entityId, bool $partial = false, ?string $selfId = null): ?string {
     if (!$partial || array_key_exists('name', $b)) {
         if (empty($b['name']) || trim($b['name']) === '') return 'name is required';
     }
-    if (isset($b['department']) && $b['department'] !== null) {
-        if (!in_array($b['department'], DEPARTMENTS, true)) return "invalid department: {$b['department']}";
+    if (isset($b['department']) && $b['department'] !== null && $b['department'] !== '') {
+        $departments = table_exists('departments') ? active_names('departments', $entityId) : DEPARTMENTS;
+        if (!in_array($b['department'], $departments, true)) return "invalid department: {$b['department']}";
+    }
+    foreach (['dob', 'joiningDate', 'confirmationDate', 'lastWorkingDay', 'exitDate'] as $k) {
+        if (!empty($b[$k]) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $b[$k])) return "$k must be a date (YYYY-MM-DD)";
     }
     if (isset($b['branch']) && $b['branch'] !== null && $b['branch'] !== '') {
         if (!in_array($b['branch'], branches_for($entityId), true)) return "invalid branch for entity: {$b['branch']}";
@@ -160,6 +166,9 @@ function validate_employee(array $b, string $entityId, bool $partial = false): ?
         $stmt = db()->prepare('SELECT id FROM employees WHERE id = ? AND entity_id = ?');
         $stmt->execute([$b['reportsTo'], $entityId]);
         if (!$stmt->fetch()) return 'reportsTo must reference an employee in the same entity';
+        if ($selfId !== null && creates_reporting_cycle($entityId, $selfId, $b['reportsTo'])) {
+            return 'That reporting line would create a loop';
+        }
     }
     return null;
 }
