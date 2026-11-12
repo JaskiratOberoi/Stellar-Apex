@@ -163,8 +163,9 @@ textarea {
   animation: var(--animate-shimmer);
 }
 
-/* ---- Sign-in scene ----------------------------------------------
-   Looping motion for src/components/LoginScene.jsx. Each loop starts and
+/* ---- 3D scenes --------------------------------------------------
+   Looping motion for the sign-in scene (LoginScene.jsx) and the portal
+   doors (PortalScenes.jsx). Each loop starts and
    ends on the resting pose, so the reduced-motion rule below leaves a
    complete, still picture. */
 @keyframes login-bob {
@@ -194,6 +195,20 @@ textarea {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
   50% { transform: translate3d(-6%, 8%, 0) scale(1.12); }
 }
+@keyframes scene-spin-y { to { transform: rotateY(360deg); } }
+@keyframes scene-spin-z { to { transform: rotateZ(360deg); } }
+@keyframes scene-draw {
+  0% { stroke-dashoffset: 100; }
+  45%, 100% { stroke-dashoffset: 0; }
+}
+@keyframes scene-liquid {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.86); }
+}
+.scene-spin-y { animation: scene-spin-y 16s linear infinite; transform-style: preserve-3d; }
+.scene-spin-z { animation: scene-spin-z 14s linear infinite; }
+.scene-draw { stroke-dasharray: 100; animation: scene-draw 5s var(--ease-in-out) infinite; }
+.scene-liquid { animation: scene-liquid 4.2s var(--ease-in-out) infinite; }
 .login-bob { animation: login-bob var(--bob, 7s) var(--ease-in-out) var(--bob-delay, 0s) infinite; transform-style: preserve-3d; }
 .login-orbit { animation: login-orbit 38s linear infinite; }
 .login-cell { animation: login-cell 4.6s var(--ease-in-out) infinite; }

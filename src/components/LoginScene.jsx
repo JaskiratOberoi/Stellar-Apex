@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
-import { animate, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion'
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion'
 import { CheckCircle, Lock, TreeStructure } from '@phosphor-icons/react'
 import { cx } from '../lib/utils'
 import { EASE_OUT } from '../lib/motion'
+import { Sheet, useTilt } from './scene3d'
 
 /* ------------------------------------------------------------------
  * The sign-in page's 3D scene: the product's three records (attendance
@@ -25,26 +26,6 @@ const CELL_TONE = {
   W: 'bg-white/12',
 }
 
-/* One sheet: depth comes from the outer layer, the entrance from the middle
- * one, and the endless bob from the inner one, so the three never fight
- * over the same transform. */
-function Sheet({ z, order, bob = 7, className, children }) {
-  return (
-    <div className={cx('absolute [transform-style:preserve-3d]', className)} style={{ transform: `translateZ(${z}px)` }}>
-      <motion.div
-        initial={{ opacity: 0, y: 46, rotateX: -24 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0 }}
-        transition={{ duration: 0.9, delay: 0.15 + order * 0.13, ease: EASE_OUT }}
-        className="[transform-style:preserve-3d]"
-      >
-        <div className="login-bob" style={{ '--bob': `${bob}s`, '--bob-delay': `${order * -1.7}s` }}>
-          {children}
-        </div>
-      </motion.div>
-    </div>
-  )
-}
-
 const GLASS = 'rounded-2xl border border-white/14 bg-[linear-gradient(145deg,rgb(255_255_255/0.13),rgb(255_255_255/0.04))] shadow-[0_30px_60px_-24px_rgb(0_0_0/0.65)]'
 const EYEBROW = 'text-[9px] uppercase tracking-[0.16em] font-semibold text-white/55'
 
@@ -59,21 +40,7 @@ function NetPay() {
 }
 
 export default function LoginScene({ className }) {
-  const reduced = useReducedMotion()
-  const px = useMotionValue(0)
-  const py = useMotionValue(0)
-  const rotateY = useSpring(useTransform(px, [-1, 1], [TILT.y - 9, TILT.y + 9]), { stiffness: 60, damping: 16 })
-  const rotateX = useSpring(useTransform(py, [-1, 1], [TILT.x + 7, TILT.x - 7]), { stiffness: 60, damping: 16 })
-
-  useEffect(() => {
-    if (reduced) return
-    const move = (e) => {
-      px.set((e.clientX / window.innerWidth) * 2 - 1)
-      py.set((e.clientY / window.innerHeight) * 2 - 1)
-    }
-    window.addEventListener('pointermove', move, { passive: true })
-    return () => window.removeEventListener('pointermove', move)
-  }, [reduced, px, py])
+  const { rotateX, rotateY } = useTilt(TILT)
 
   return (
     <div aria-hidden className={cx('relative select-none pointer-events-none', className)} style={{ perspective: 1100 }}>

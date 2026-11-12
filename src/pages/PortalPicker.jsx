@@ -6,6 +6,7 @@ import { useEntity } from '../store/EntityContext'
 import { useAuth } from '../store/AuthContext'
 import { cx } from '../lib/utils'
 import { ENTITY_LOGO } from '../components/logos'
+import { AresScene, NobleScene } from '../components/PortalScenes'
 
 /* Each entity is a full "door" into its own brand world. */
 const DOOR = {
@@ -17,6 +18,7 @@ const DOOR = {
     rule: 'bg-noble/20',
     cta: 'text-noble',
     logoBox: 'bg-white/85',
+    Scene: NobleScene,
   },
   ares: {
     wrap: 'bg-[#15100a] text-white',
@@ -26,6 +28,7 @@ const DOOR = {
     rule: 'bg-ares-gold/25',
     cta: 'text-ares-gold',
     logoBox: '',
+    Scene: AresScene,
   },
 }
 
@@ -46,6 +49,8 @@ function Door({ company, count, onEnter, index }) {
       )}
     >
       <span aria-hidden className="absolute inset-0" style={{ background: d.wash }} />
+      {/* What the company does, in depth. Desktop only: the stacked mobile doors are too short. */}
+      <d.Scene className="hidden lg:block absolute inset-x-0 top-[27%] h-[38%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.06]" />
 
       <div className="relative h-full flex flex-col justify-end p-8 sm:p-12 lg:p-14">
         <div
