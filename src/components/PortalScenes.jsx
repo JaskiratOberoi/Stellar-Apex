@@ -188,8 +188,9 @@ export function AresScene({ className }) {
         </div>
       </Sheet>
 
-      {/* readout */}
-      <Sheet z={110} order={1} bob={7} className="left-[-30px] top-[2px]">
+      {/* readout: on the outer side, clear of the "Choose your portal" card
+          that overlaps the door's inner top corner */}
+      <Sheet z={110} order={1} bob={7} className="right-[-44px] top-[-12px]">
         <div className={cx(ARES_CARD, 'w-[190px] p-4 text-white')}>
           <p className={ARES_EYEBROW}>IVD analyser · online</p>
           <p className="font-display font-bold text-[24px] tracking-tight leading-none mt-2 tabular-nums">
@@ -205,7 +206,7 @@ export function AresScene({ className }) {
       </Sheet>
 
       {/* loose pieces, nearest the viewer */}
-      <Sheet z={150} order={2} bob={6} className="right-[-26px] top-[70px]">
+      <Sheet z={150} order={2} bob={6} className="left-[-14px] top-[92px]">
         <div className="scene-spin-z text-ares-gold drop-shadow-[0_10px_18px_rgb(0_0_0/0.7)]">
           <GearSix size={46} weight="duotone" />
         </div>
