@@ -67,7 +67,13 @@ if ($method === 'POST' && $path === '/onboard') {
     $name = trim($_POST['name'] ?? '');
     $designation = strtoupper(trim($_POST['designation'] ?? ''));
     if ($name === '' || mb_strlen($name) > 96) json_error('Name is required', 422);
-    if (!in_array($designation, ONBOARD_DESIGNATIONS, true)) json_error('Designation must be TM, ASM, RSM, or ZSM', 422);
+    // Noble's form asks for a field-sales designation. Other entities' forms do
+    // not ask at all (HR sets it when adding the employee), so it stays blank.
+    if ($onboardEntity === 'noble') {
+        if (!in_array($designation, ONBOARD_DESIGNATIONS, true)) json_error('Designation must be TM, ASM, RSM, or ZSM', 422);
+    } else {
+        $designation = mb_substr($designation, 0, 16);
+    }
 
     $num = function ($k) {
         $v = trim($_POST[$k] ?? '');

@@ -256,8 +256,12 @@ export default function OnboardingQueue() {
                     <td className="py-3 pl-4 pr-3">
                       <p className="text-[13.5px] font-semibold">{s.name}</p>
                       <p className="text-[11.5px] text-ink-faint">
-                        <span className="font-mono bg-slate-soft rounded px-1 py-px text-ink-soft">{s.designation}</span>{' '}
-                        · {new Date(s.createdAt.replace(' ', 'T')).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        {s.designation && (
+                          <>
+                            <span className="font-mono bg-slate-soft rounded px-1 py-px text-ink-soft">{s.designation}</span> ·{' '}
+                          </>
+                        )}
+                        {new Date(s.createdAt.replace(' ', 'T')).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </p>
                     </td>
                     <td className="px-3 text-[13px] text-ink-soft">{[s.area, s.location].filter(Boolean).join(' · ') || '—'}</td>

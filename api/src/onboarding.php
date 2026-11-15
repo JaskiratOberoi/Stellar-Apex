@@ -108,24 +108,24 @@ function onboarding_form_url(string $entityId): ?string {
 }
 
 function onboarding_invite_email(array $entity, string $url, string $name): array {
-    $company = $entity['brand'] ?: $entity['legal_name'];
-    $hello = $name !== '' ? "Hello $name," : 'Hello,';
-    $text = "$hello\n\n"
-        . "Welcome to $company. To complete your joining formalities, please fill in the onboarding form:\n\n"
+    $company = MAIL_THEMES[$entity['id']]['name'] ?? ($entity['brand'] ?: $entity['legal_name']);
+    $first = $name !== '' ? explode(' ', $name)[0] : '';
+    $lead = 'To complete your joining formalities, please fill in the onboarding form.';
+    $docs = 'It takes about two minutes. Keep your Aadhaar and PAN cards handy, as the form asks for a photo of both sides of each.';
+    $help = 'For any question, please contact the HR team.';
+    $text = ($name !== '' ? "Hello $name," : 'Hello,') . "\n\n"
+        . "Welcome to $company. $lead\n\n"
         . "$url\n\n"
-        . "It takes about two minutes. Keep your Aadhaar and PAN cards handy, as the form asks for a photo of both sides of each.\n\n"
-        . "This is an automated message from an unattended mailbox. For any question, please contact the HR team.\n\n"
+        . "$docs\n\n"
+        . "$help This is an automated message from an unattended mailbox.\n\n"
         . "{$entity['legal_name']}\n";
-    $e = fn (string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
-    $html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1c1c1c;max-width:520px">'
-        . '<p>' . $e($hello) . '</p>'
-        . '<p>Welcome to ' . $e($company) . '. To complete your joining formalities, please fill in the onboarding form.</p>'
-        . '<p style="margin:24px 0"><a href="' . $e($url) . '" style="background:' . ($entity['id'] === 'noble' ? '#3b3897' : '#8f6b1d') . ';color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px;display:inline-block">Open the onboarding form</a></p>'
-        . '<p>It takes about two minutes. Keep your Aadhaar and PAN cards handy, as the form asks for a photo of both sides of each.</p>'
-        . '<p style="font-size:13px;color:#666666">If the button does not work, copy this link into your browser:<br>' . $e($url) . '</p>'
-        . '<p style="font-size:13px;color:#666666">This is an automated message from an unattended mailbox. For any question, please contact the HR team.</p>'
-        . '<p style="font-size:13px;color:#666666">' . $e($entity['legal_name']) . '</p>'
-        . '</div>';
+    $html = mail_layout($entity['id'], [
+        'heading'    => $first !== '' ? "Welcome to $company, $first" : "Welcome to $company",
+        'preheader'  => 'Complete your onboarding form. It takes about two minutes.',
+        'paragraphs' => [$lead, $docs],
+        'button'     => ['Open the onboarding form', $url],
+        'note'       => $help,
+    ]);
     return ["$company: your onboarding form", $text, $html];
 }
 

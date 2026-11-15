@@ -67,6 +67,106 @@ function send_mail(string $entity, string $to, string $subject, string $text, ?s
     smtp_deliver($m, $to, $message);
 }
 
+/* ----------------------------- layout ------------------------------ */
+
+// Look of each entity's emails. Ares: black and gold, logo on top. An entity
+// without a theme gets a plain light layout with its name as the header.
+const MAIL_THEMES = [
+    'ares' => [
+        'name'    => 'Ares Labs',
+        'legal'   => 'Ares Labs LLP',
+        'logo'    => '/brand/ares-full.png', // 1200 x 312, gold on transparent
+        'logo_w'  => 168,
+        'logo_h'  => 44,
+        'page'    => '#0b0804',
+        'card'    => '#15100a',
+        'line'    => '#3d3319',
+        'accent'  => '#d4af37',
+        'on_accent' => '#1c1406',
+        'heading' => '#f7efd9',
+        'text'    => '#d6cbb0',
+        'muted'   => '#8f8263',
+    ],
+];
+const MAIL_THEME_PLAIN = [
+    'logo' => null, 'page' => '#f3f1ec', 'card' => '#ffffff', 'line' => '#e3dfd6', 'accent' => '#1b6a4a',
+    'on_accent' => '#ffffff', 'heading' => '#16201b', 'text' => '#3b4540', 'muted' => '#7b837e',
+];
+
+/**
+ * Wrap a message in the entity's branded HTML layout. Every string is plain
+ * text and is escaped here. $c:
+ *   heading    string            the one line the reader must see
+ *   paragraphs string[]          body text, in order
+ *   button     [label, url]      optional call to action
+ *   details    [label => value]  optional small table of facts
+ *   note       string            optional small print under the body
+ *   preheader  string            optional inbox preview text
+ * Written for mail clients: tables, inline styles, no external CSS.
+ */
+function mail_layout(string $entity, array $c): string {
+    $t = (MAIL_THEMES[$entity] ?? []) + MAIL_THEME_PLAIN + ['name' => ucfirst($entity), 'legal' => ucfirst($entity)];
+    $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $font = "font-family:'Segoe UI',Helvetica,Arial,sans-serif;";
+    $base = app_config()['app_url'];
+
+    // Header: the logo when the app address is known, else the name set in the accent colour.
+    // The alt text is styled the same way, so the header still reads with images blocked.
+    $wordmark = "{$font}font-size:22px;font-weight:700;letter-spacing:6px;color:{$t['accent']};text-transform:uppercase;";
+    $header = ($t['logo'] && $base !== '')
+        ? '<img src="' . $e($base . $t['logo']) . '" width="' . $t['logo_w'] . '" height="' . $t['logo_h'] . '" alt="' . $e($t['name'])
+            . '" style="display:block;border:0;outline:none;' . $wordmark . '">'
+        : '<span style="' . $wordmark . '">' . $e($t['name']) . '</span>';
+
+    $body = '';
+    foreach ($c['paragraphs'] ?? [] as $p) {
+        $body .= '<p style="margin:0 0 16px;' . $font . 'font-size:15px;line-height:24px;color:' . $t['text'] . ';">' . nl2br($e($p)) . '</p>';
+    }
+    if (!empty($c['details'])) {
+        $rows = '';
+        foreach ($c['details'] as $label => $value) {
+            $rows .= '<tr><td style="padding:9px 14px;border-top:1px solid ' . $t['line'] . ';' . $font . 'font-size:12px;letter-spacing:1px;text-transform:uppercase;color:' . $t['muted'] . ';">' . $e($label) . '</td>'
+                . '<td align="right" style="padding:9px 14px;border-top:1px solid ' . $t['line'] . ';' . $font . 'font-size:14px;font-weight:600;color:' . $t['heading'] . ';">' . $e($value) . '</td></tr>';
+        }
+        $body .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 20px;border:1px solid ' . $t['line'] . ';border-top:0;border-radius:8px;">' . $rows . '</table>';
+    }
+    if (!empty($c['button'])) {
+        [$label, $url] = $c['button'];
+        $body .= '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;"><tr>'
+            . '<td bgcolor="' . $t['accent'] . '" style="border-radius:8px;">'
+            . '<a href="' . $e($url) . '" style="display:inline-block;padding:13px 26px;' . $font . 'font-size:15px;font-weight:700;color:' . $t['on_accent'] . ';text-decoration:none;border-radius:8px;">' . $e($label) . '</a>'
+            . '</td></tr></table>'
+            . '<p style="margin:0 0 16px;' . $font . 'font-size:12px;line-height:19px;color:' . $t['muted'] . ';">If the button does not work, copy this link into your browser:<br>'
+            . '<a href="' . $e($url) . '" style="color:' . $t['accent'] . ';text-decoration:underline;word-break:break-all;">' . $e($url) . '</a></p>';
+    }
+    if (!empty($c['note'])) {
+        $body .= '<p style="margin:0;' . $font . 'font-size:13px;line-height:20px;color:' . $t['muted'] . ';">' . nl2br($e($c['note'])) . '</p>';
+    }
+
+    $dark = $t['page'] === MAIL_THEMES['ares']['page'] ? 'dark' : 'light';
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<meta name="color-scheme" content="' . $dark . '"><meta name="supported-color-schemes" content="' . $dark . '">'
+        . '<title>' . $e($c['heading'] ?? $t['name']) . '</title></head>'
+        . '<body style="margin:0;padding:0;background:' . $t['page'] . ';">'
+        . (!empty($c['preheader']) ? '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:' . $t['page'] . ';">' . $e($c['preheader']) . '</div>' : '')
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="' . $t['page'] . '" style="background:' . $t['page'] . ';"><tr><td align="center" style="padding:32px 16px;">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">'
+        // logo
+        . '<tr><td align="center" style="padding:8px 0 26px;">' . $header . '</td></tr>'
+        // card
+        . '<tr><td bgcolor="' . $t['card'] . '" style="background:' . $t['card'] . ';border:1px solid ' . $t['line'] . ';border-top:3px solid ' . $t['accent'] . ';border-radius:12px;padding:34px 32px 30px;">'
+        . (!empty($c['heading']) ? '<h1 style="margin:0 0 18px;' . $font . 'font-size:23px;line-height:30px;font-weight:700;color:' . $t['heading'] . ';">' . $e($c['heading']) . '</h1>' : '')
+        . $body
+        . '</td></tr>'
+        // footer
+        . '<tr><td align="center" style="padding:22px 16px 8px;' . $font . 'font-size:12px;line-height:19px;color:' . $t['muted'] . ';">'
+        . '<span style="color:' . $t['accent'] . ';font-weight:600;letter-spacing:1px;">' . $e($t['legal']) . '</span><br>'
+        . 'This is an automated message from an unattended mailbox. Please do not reply to it.'
+        . '</td></tr>'
+        . '</table></td></tr></table></body></html>';
+}
+
 /* ---------------------------- internals ---------------------------- */
 
 // Header values must never carry a line break (header injection).

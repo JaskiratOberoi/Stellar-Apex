@@ -23,7 +23,12 @@ try {
     send_mail(
         $entity, $to, 'Stellar Apex test email',
         "This is a test email from the Stellar Apex HR portal.\n\nIf you received it, outgoing email is working.\n",
-        '<p>This is a test email from the <strong>Stellar Apex</strong> HR portal.</p><p>If you received it, outgoing email is working.</p>'
+        mail_layout($entity, [
+            'heading'    => 'Outgoing email is working',
+            'preheader'  => 'A test email from the Stellar Apex HR portal.',
+            'paragraphs' => ['This is a test email from the Stellar Apex HR portal.', 'If you received it, outgoing email is working and this is how messages from this portal will look.'],
+            'details'    => ['Sent from' => $m['from'], 'Sent at' => date('j M Y, H:i') . ' UTC'],
+        ])
     );
     echo "[mail] accepted by the mail server\n";
 } catch (RuntimeException $e) {

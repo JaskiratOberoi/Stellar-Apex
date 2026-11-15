@@ -233,7 +233,8 @@ export default function AddEmployee() {
 
       {submission && (
         <Banner tone="accent" icon={IdentificationCard} className="mb-5">
-          From the onboarding form: <span className="font-semibold">{submission.name}</span>, {submission.designation}
+          From the onboarding form: <span className="font-semibold">{submission.name}</span>
+          {submission.designation && `, ${submission.designation}`}
           {(submission.area || submission.location) && ` · ${[submission.area, submission.location].filter(Boolean).join(', ')}`}
           {submission.fixedSalary != null && ` · fixed salary ${inr(submission.fixedSalary)}`}
           {submission.expenseComponent != null && ` · expenses ${inr(submission.expenseComponent)}`}. The salary is saved with the new record.

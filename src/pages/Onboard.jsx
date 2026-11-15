@@ -27,7 +27,9 @@ import { ENTITY_MARK } from '../components/logos'
  */
 
 const BRAND = {
-  noble: { name: 'Noble Diagnostics', team: 'Noble field team', hr: 'Noble HR', footer: 'Noble Diagnostics · Qugen Pathlabs Pvt. Ltd.' },
+  // asksDesignation: Noble's form is for field sales and asks which of the four
+  // field designations applies. Ares's does not ask; HR sets it on the record.
+  noble: { name: 'Noble Diagnostics', team: 'Noble field team', hr: 'Noble HR', footer: 'Noble Diagnostics · Qugen Pathlabs Pvt. Ltd.', asksDesignation: true },
   ares: { name: 'Ares Labs', team: 'Ares Labs team', hr: 'Ares Labs HR', footer: 'Ares Labs LLP' },
 }
 
@@ -292,7 +294,7 @@ export default function Onboard() {
   // What still stands between the person and the Submit button, in order.
   const missing = [
     !f.name.trim() && 'your full name',
-    !f.designation && 'a designation',
+    brand.asksDesignation && !f.designation && 'a designation',
     photoCount < 4 && `${4 - photoCount} more document ${4 - photoCount === 1 ? 'photo' : 'photos'}`,
   ].filter(Boolean)
   const valid = missing.length === 0
@@ -387,21 +389,23 @@ export default function Onboard() {
                 <input className={inputCls} value={f.name} onChange={set('name')} placeholder="As per Aadhaar" />
               </Field>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Designation" required>
-                  <select
-                    className={cx(inputCls, 'cursor-pointer', !f.designation && 'text-ink-faint')}
-                    value={f.designation}
-                    onChange={set('designation')}
-                  >
-                    <option value="">Select designation</option>
-                    {DESIGNATIONS.map((d) => (
-                      <option key={d.value} value={d.value}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+              <div className={cx('grid grid-cols-1 gap-4', brand.asksDesignation && 'sm:grid-cols-2')}>
+                {brand.asksDesignation && (
+                  <Field label="Designation" required>
+                    <select
+                      className={cx(inputCls, 'cursor-pointer', !f.designation && 'text-ink-faint')}
+                      value={f.designation}
+                      onChange={set('designation')}
+                    >
+                      <option value="">Select designation</option>
+                      {DESIGNATIONS.map((d) => (
+                        <option key={d.value} value={d.value}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
                 <Field label="Area">
                   <input className={inputCls} value={f.area} onChange={set('area')} placeholder="e.g. Rohtak belt" />
                 </Field>
@@ -470,7 +474,9 @@ export default function Onboard() {
                 <motion.div
                   className={cx('h-full rounded-full', valid ? 'bg-mint' : 'bg-accent')}
                   initial={false}
-                  animate={{ width: `${((photoCount + (f.name.trim() ? 1 : 0) + (f.designation ? 1 : 0)) / 6) * 100}%` }}
+                  animate={{
+                    width: `${((photoCount + (f.name.trim() ? 1 : 0) + (brand.asksDesignation && f.designation ? 1 : 0)) / (brand.asksDesignation ? 6 : 5)) * 100}%`,
+                  }}
                   transition={{ duration: DUR.slow, ease: EASE_OUT }}
                 />
               </div>
