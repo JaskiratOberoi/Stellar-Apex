@@ -68,6 +68,9 @@ function onboarding_row_to_api(array $r): array {
             'panFront'     => !empty($r['pan_front_photo']),
             'panBack'      => !empty($r['pan_back_photo']),
         ],
+        'personalEmail'    => $r['personal_email'] ?? null,
+        'officialEmail'    => $r['official_email'] ?? null,
+        'invited'          => !empty($r['invite_id']),
         'status'           => $r['status'],
         'employeeId'       => $r['employee_id'] ?? null,
         'createdAt'        => $r['created_at'],
@@ -94,6 +97,28 @@ function get_onboarding_row(string $entityId, ?string $id = null): ?array {
 /* ---- Emailing the form link ---- */
 
 const ONBOARD_INVITE_HOURLY_LIMIT = 40; // per entity
+
+// The invites table and the email columns arrive with migration 09. Until it
+// has run, invites go out as plain links and the form's emails are not stored.
+function onboarding_invites_ready(): bool {
+    static $ok = null;
+    if ($ok !== null) return $ok;
+    try {
+        $cols = array_column(db()->query('SHOW COLUMNS FROM onboarding_submissions')->fetchAll(), 'Field');
+        $table = db()->query("SHOW TABLES LIKE 'onboarding_invites'")->fetch();
+        return $ok = in_array('personal_email', $cols, true) && (bool) $table;
+    } catch (Throwable $e) {
+        return $ok = false;
+    }
+}
+
+// An invite by the token carried in its link, or null.
+function get_onboarding_invite(?string $token): ?array {
+    if (!$token || !preg_match('/^[0-9a-f]{32}$/', $token) || !onboarding_invites_ready()) return null;
+    $stmt = db()->prepare('SELECT * FROM onboarding_invites WHERE id = ?');
+    $stmt->execute([$token]);
+    return $stmt->fetch() ?: null;
+}
 
 // Address of this entity's public form. Noble keeps the original /onboard.
 function onboarding_form_url(string $entityId): ?string {
@@ -154,6 +179,15 @@ function route_onboarding_invite(string $method, array $segments): void {
 
     $url = onboarding_form_url($entityId);
     if (!$url) json_error('The app address (APP_URL) is not configured on the server', 500);
+    // Record the invite and carry its token in the link, so the form can
+    // pre-fill this address without the address itself appearing in the URL.
+    $token = null;
+    if (onboarding_invites_ready()) {
+        $token = bin2hex(random_bytes(16));
+        db()->prepare('INSERT INTO onboarding_invites (id, entity_id, email, name, created_by) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$token, $entityId, $email, $name ?: null, (int) $user['id']]);
+        $url .= '?i=' . $token;
+    }
     $stmt = db()->prepare('SELECT * FROM entities WHERE id = ?');
     $stmt->execute([$entityId]);
     [$subject, $text, $html] = onboarding_invite_email($stmt->fetch(), $url, $name);
@@ -161,6 +195,7 @@ function route_onboarding_invite(string $method, array $segments): void {
     try {
         send_mail($entityId, $email, $subject, $text, $html, ['to_name' => $name]);
     } catch (RuntimeException $e) {
+        if ($token) db()->prepare('DELETE FROM onboarding_invites WHERE id = ?')->execute([$token]);
         error_log('[mail] onboarding invite failed: ' . $e->getMessage());
         audit((int) $user['id'], $entityId, null, 'onboard_invite_failed', null, ['to' => $email]);
         json_error('The email could not be sent. Check the address, or try again in a minute.', 502);

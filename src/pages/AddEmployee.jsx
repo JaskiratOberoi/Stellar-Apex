@@ -74,6 +74,8 @@ export default function AddEmployee() {
       : {
           ...EMPTY,
           name: submission?.name || '',
+          personalEmail: submission?.personalEmail || '',
+          email: submission?.officialEmail || '',
           joiningDate: submission ? todayISO() : '',
           designation: FIELD_DESIGNATIONS[submission?.designation] || '',
           department: submission && ref.departmentNames.includes('Sales & Marketing') ? 'Sales & Marketing' : '',

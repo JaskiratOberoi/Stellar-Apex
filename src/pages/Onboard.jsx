@@ -14,7 +14,7 @@ import {
 import { API_BASE } from '../lib/api'
 import { cx } from '../lib/utils'
 import { DUR, EASE_OUT, collapse, fadeUp, pop, spring } from '../lib/motion'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { ENTITY_MARK } from '../components/logos'
 
 /**
@@ -41,6 +41,7 @@ const DESIGNATIONS = [
 ]
 
 const MAX_PHOTO_MB = 8
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const inputCls =
   'w-full h-11 rounded-[10px] border border-hairline bg-surface-high px-3 text-[14px] outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 placeholder:text-ink-faint'
@@ -280,7 +281,29 @@ export default function Onboard() {
     location: '',
     fixedSalary: '',
     expenseComponent: '',
+    personalEmail: '',
+    officialEmail: '',
   })
+
+  // A link emailed from the portal carries an invite token (?i=…). It tells us
+  // which address the link was sent to, so the personal email comes pre-filled.
+  const inviteToken = useSearchParams()[0].get('i') || ''
+  const [invitedEmail, setInvitedEmail] = useState('')
+  useEffect(() => {
+    if (!/^[0-9a-f]{32}$/.test(inviteToken)) return
+    let live = true
+    fetch(`${API_BASE}/onboard/invite/${inviteToken}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((inv) => {
+        if (!live || !inv?.email) return
+        setInvitedEmail(inv.email)
+        setF((p) => ({ ...p, personalEmail: p.personalEmail || inv.email, name: p.name || inv.name || '' }))
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [inviteToken])
   const [aadhaarFront, setAadhaarFront] = useState(null)
   const [aadhaarBack, setAadhaarBack] = useState(null)
   const [panFront, setPanFront] = useState(null)
@@ -295,6 +318,8 @@ export default function Onboard() {
   const missing = [
     !f.name.trim() && 'your full name',
     brand.asksDesignation && !f.designation && 'a designation',
+    f.personalEmail.trim() && !EMAIL_RE.test(f.personalEmail.trim()) && 'a valid personal email',
+    f.officialEmail.trim() && !EMAIL_RE.test(f.officialEmail.trim()) && 'a valid official email',
     photoCount < 4 && `${4 - photoCount} more document ${4 - photoCount === 1 ? 'photo' : 'photos'}`,
   ].filter(Boolean)
   const valid = missing.length === 0
@@ -307,7 +332,8 @@ export default function Onboard() {
     try {
       const fd = new FormData()
       fd.append('entity', entity)
-      Object.entries(f).forEach(([k, v]) => fd.append(k, v))
+      if (inviteToken) fd.append('invite', inviteToken)
+      Object.entries(f).forEach(([k, v]) => fd.append(k, v.trim()))
       fd.append('aadhaarFront', aadhaarFront)
       fd.append('aadhaarBack', aadhaarBack)
       fd.append('panFront', panFront)
@@ -324,7 +350,7 @@ export default function Onboard() {
   }
 
   const reset = () => {
-    setF({ name: '', designation: '', area: '', location: '', fixedSalary: '', expenseComponent: '' })
+    setF({ name: '', designation: '', area: '', location: '', fixedSalary: '', expenseComponent: '', personalEmail: '', officialEmail: '' })
     setAadhaarFront(null)
     setAadhaarBack(null)
     setPanFront(null)
@@ -388,6 +414,33 @@ export default function Onboard() {
               <Field label="Full name" required>
                 <input className={inputCls} value={f.name} onChange={set('name')} placeholder="As per Aadhaar" />
               </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Personal email"
+                  hint={invitedEmail && f.personalEmail.trim() === invitedEmail ? 'The address this form was sent to. Change it if you use another.' : undefined}
+                >
+                  <input
+                    className={inputCls}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={f.personalEmail}
+                    onChange={set('personalEmail')}
+                    placeholder="name@gmail.com"
+                  />
+                </Field>
+                <Field label="Official email" hint="Only if you already have a company address.">
+                  <input
+                    className={inputCls}
+                    type="email"
+                    inputMode="email"
+                    value={f.officialEmail}
+                    onChange={set('officialEmail')}
+                    placeholder="name@company.com"
+                  />
+                </Field>
+              </div>
 
               <div className={cx('grid grid-cols-1 gap-4', brand.asksDesignation && 'sm:grid-cols-2')}>
                 {brand.asksDesignation && (

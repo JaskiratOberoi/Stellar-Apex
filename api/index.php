@@ -50,6 +50,14 @@ if ($method === 'GET' && $path === '/health') {
     json_response(['ok' => true]);
 }
 
+/* ---- PUBLIC: who an emailed invite was sent to, so the form can pre-fill.
+   The token is 128 random bits and only ever travels in that person's email. */
+if ($method === 'GET' && count($segments) === 3 && $segments[0] === 'onboard' && $segments[1] === 'invite') {
+    $invite = get_onboarding_invite($segments[2]);
+    if (!$invite) json_error('Not found', 404);
+    json_response(['entity' => $invite['entity_id'], 'email' => $invite['email'], 'name' => $invite['name']]);
+}
+
 /* ---- PUBLIC field onboarding (no auth; multipart/form-data) ----
    Writes to the pending queue only — never to employees. Photos stored
    outside the web root; IP rate-limited. */
@@ -85,6 +93,20 @@ if ($method === 'POST' && $path === '/onboard') {
     $fixedSalary = $num('fixedSalary');
     $expense = $num('expenseComponent');
 
+    // Both email addresses are optional. A form opened from an emailed invite
+    // falls back to the address the invite was sent to.
+    $emailField = function (string $k, string $label) {
+        $v = trim($_POST[$k] ?? '');
+        if ($v === '') return null;
+        if (!filter_var($v, FILTER_VALIDATE_EMAIL) || strlen($v) > 160) json_error("$label is not a valid email address", 422);
+        return $v;
+    };
+    $personalEmail = $emailField('personalEmail', 'Personal email');
+    $officialEmail = $emailField('officialEmail', 'Official email');
+    $invite = get_onboarding_invite(trim($_POST['invite'] ?? ''));
+    if ($invite && $invite['entity_id'] !== $onboardEntity) $invite = null;
+    if ($invite && $personalEmail === null) $personalEmail = $invite['email'];
+
     // Both sides of both documents are required.
     $labels = [
         'aadhaarFront' => 'Aadhaar front photo', 'aadhaarBack' => 'Aadhaar back photo',
@@ -114,6 +136,14 @@ if ($method === 'POST' && $path === '/onboard') {
         $fixedSalary, $expense,
         $stored['aadhaar_front'], $stored['aadhaar_back'], $stored['pan_front'], $stored['pan_back'], $ip,
     ]);
+    if (onboarding_invites_ready()) {
+        db()->prepare('UPDATE onboarding_submissions SET personal_email = ?, official_email = ?, invite_id = ? WHERE id = ?')
+            ->execute([$personalEmail, $officialEmail, $invite['id'] ?? null, $id]);
+        if ($invite) {
+            db()->prepare('UPDATE onboarding_invites SET submission_id = ?, submitted_at = NOW() WHERE id = ? AND submission_id IS NULL')
+                ->execute([$id, $invite['id']]);
+        }
+    }
     audit(null, $onboardEntity, null, 'onboard_submit', null, ['submission' => $id, 'name' => $name]);
     json_response(['ok' => true, 'id' => $id], 201);
 }

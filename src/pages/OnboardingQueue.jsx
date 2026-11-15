@@ -263,6 +263,11 @@ export default function OnboardingQueue() {
                         )}
                         {new Date(s.createdAt.replace(' ', 'T')).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </p>
+                      {(s.personalEmail || s.officialEmail) && (
+                        <p className="text-[11.5px] text-ink-soft mt-0.5 max-w-[220px] truncate" title={[s.personalEmail, s.officialEmail].filter(Boolean).join(' · ')}>
+                          {[s.personalEmail, s.officialEmail].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
                     </td>
                     <td className="px-3 text-[13px] text-ink-soft">{[s.area, s.location].filter(Boolean).join(' · ') || '—'}</td>
                     <td className="px-3 text-[13px] text-right font-mono tabular-nums">{inr(s.fixedSalary)}</td>
