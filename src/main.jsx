@@ -23,7 +23,9 @@ import OnboardingQueue from './pages/OnboardingQueue'
 
 const router = createBrowserRouter([
   // PUBLIC: field onboarding form — deliberately outside the auth-gated shell.
+  // /onboard is Noble's form (the original link); /onboard/ares is Ares's.
   { path: '/onboard', element: <Onboard /> },
+  { path: '/onboard/:entity', element: <Onboard /> },
   {
     element: <AppLayout />,
     children: [

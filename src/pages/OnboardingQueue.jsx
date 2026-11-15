@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowCounterClockwise, ArrowSquareOut, CircleNotch, Copy, IdentificationCard, UserPlus, X } from '@phosphor-icons/react'
+import { ArrowCounterClockwise, ArrowSquareOut, CircleNotch, Copy, EnvelopeSimple, IdentificationCard, PaperPlaneTilt, UserPlus, X } from '@phosphor-icons/react'
 import { API_BASE, apiFetch, getToken } from '../lib/api'
 import { cx, inr } from '../lib/utils'
 import { fadeUp, listItem } from '../lib/motion'
 import { useEntity } from '../store/EntityContext'
 import { EmptyState } from '../components/ui'
-import { Button, ConfirmDialog, Dialog, Segmented, SkeletonRows, useToast } from '../components/kit'
+import { Button, ConfirmDialog, Dialog, Field, Segmented, SkeletonRows, TextInput, useToast } from '../components/kit'
 
 /**
  * HR view of the PUBLIC field-onboarding queue (submissions from /onboard),
@@ -94,7 +94,45 @@ export default function OnboardingQueue() {
     load()
   }, [load])
 
-  const formUrl = `${window.location.origin}/onboard`
+  // Each portal has its own public form; Noble keeps the original /onboard.
+  const formUrl = `${window.location.origin}/onboard${entity.id === 'noble' ? '' : `/${entity.id}`}`
+
+  // Emailing the link is offered only where the portal has a sending mailbox.
+  const [mail, setMail] = useState(null)
+  const [inviting, setInviting] = useState(false)
+  const [invite, setInvite] = useState({ name: '', email: '' })
+  const [sending, setSending] = useState(false)
+  useEffect(() => {
+    let live = true
+    setMail(null)
+    apiFetch('/onboarding/invite', { entity: entity.id })
+      .then((m) => live && setMail(m))
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [entity.id])
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invite.email.trim())
+  const sendInvite = async (e) => {
+    e.preventDefault()
+    if (!emailOk || sending) return
+    setSending(true)
+    try {
+      const res = await apiFetch('/onboarding/invite', {
+        method: 'POST',
+        entity: entity.id,
+        body: { name: invite.name.trim(), email: invite.email.trim() },
+      })
+      toast.success(`Form link emailed to ${res.to}`)
+      setInviting(false)
+      setInvite({ name: '', email: '' })
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(formUrl)
@@ -131,10 +169,47 @@ export default function OnboardingQueue() {
           <h1 className="font-display text-[28px] font-bold tracking-tight">Onboarding</h1>
           <p className="text-[13px] text-ink-faint mt-0.5">Field submissions from the public form. Review each one, then add it to the register.</p>
         </div>
-        <Button variant="secondary" icon={Copy} done={copied} onClick={copyLink} title={formUrl}>
-          {copied ? 'Copied' : 'Copy form link'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" icon={Copy} done={copied} onClick={copyLink} title={formUrl}>
+            {copied ? 'Copied' : 'Copy form link'}
+          </Button>
+          {mail?.enabled && (
+            <Button icon={EnvelopeSimple} onClick={() => setInviting(true)}>
+              Email form link
+            </Button>
+          )}
+        </div>
       </div>
+
+      <Dialog
+        open={inviting}
+        onClose={() => !sending && setInviting(false)}
+        title="Email the onboarding form"
+        description={`Sent from ${mail?.from ?? 'the portal mailbox'}. Replies to that address are not read.`}
+      >
+        <form onSubmit={sendInvite} className="space-y-4">
+          <Field label="Email address" required>
+            <TextInput
+              type="email"
+              autoFocus
+              value={invite.email}
+              onChange={(e) => setInvite((p) => ({ ...p, email: e.target.value }))}
+              placeholder="name@example.com"
+            />
+          </Field>
+          <Field label="Name" hint="Optional. Used in the greeting.">
+            <TextInput value={invite.name} onChange={(e) => setInvite((p) => ({ ...p, name: e.target.value }))} maxLength={96} />
+          </Field>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="ghost" onClick={() => setInviting(false)} disabled={sending}>
+              Cancel
+            </Button>
+            <Button type="submit" icon={PaperPlaneTilt} loading={sending} disabled={!emailOk}>
+              Send email
+            </Button>
+          </div>
+        </form>
+      </Dialog>
 
       {rows && rows.length > 0 && (
         <Segmented

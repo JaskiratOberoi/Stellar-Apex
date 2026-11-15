@@ -57,6 +57,13 @@ if ($method === 'POST' && $path === '/onboard') {
     $ip = client_ip() ?? '0.0.0.0';
     if (onboard_rate_limited($ip)) json_error('Too many submissions from this connection. Try again later.', 429);
 
+    // Which portal's queue this lands in. Links without an entity predate the
+    // per-entity form and belong to Noble.
+    $onboardEntity = trim($_POST['entity'] ?? '') ?: 'noble';
+    $known = db()->prepare('SELECT id FROM entities WHERE id = ?');
+    $known->execute([$onboardEntity]);
+    if (!$known->fetch()) json_error('Unknown company', 422);
+
     $name = trim($_POST['name'] ?? '');
     $designation = strtoupper(trim($_POST['designation'] ?? ''));
     if ($name === '' || mb_strlen($name) > 96) json_error('Name is required', 422);
@@ -95,13 +102,13 @@ if ($method === 'POST' && $path === '/onboard') {
             aadhaar_front_photo, aadhaar_back_photo, pan_front_photo, pan_back_photo, ip)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )->execute([
-        $id, 'noble', $name, $designation,
+        $id, $onboardEntity, $name, $designation,
         trim($_POST['area'] ?? '') ?: null,
         trim($_POST['location'] ?? '') ?: null,
         $fixedSalary, $expense,
         $stored['aadhaar_front'], $stored['aadhaar_back'], $stored['pan_front'], $stored['pan_back'], $ip,
     ]);
-    audit(null, 'noble', null, 'onboard_submit', null, ['submission' => $id, 'name' => $name]);
+    audit(null, $onboardEntity, null, 'onboard_submit', null, ['submission' => $id, 'name' => $name]);
     json_response(['ok' => true, 'id' => $id], 201);
 }
 

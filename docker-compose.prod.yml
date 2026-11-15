@@ -51,6 +51,10 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-}
       SEED_MODE: ${SEED_MODE:-sample}
       UPLOADS_DIR: /var/uploads
+      # Outgoing email for Ares (no-reply@ares-labs.com on Hostinger). Email
+      # stays off until MAIL_ARES_PASSWORD is set in .env.prod.
+      MAIL_ARES_PASSWORD: ${MAIL_ARES_PASSWORD:-}
+      MAIL_ARES_REPLY_TO: ${MAIL_ARES_REPLY_TO:-}
     ports:
       - "${PHP_HOST_PORT:-8090}:80"
     volumes:

@@ -14,14 +14,22 @@ import {
 import { API_BASE } from '../lib/api'
 import { cx } from '../lib/utils'
 import { DUR, EASE_OUT, collapse, fadeUp, pop, spring } from '../lib/motion'
-import { NobleMark } from '../components/logos'
+import { useParams } from 'react-router-dom'
+import { ENTITY_MARK } from '../components/logos'
 
 /**
  * PUBLIC field-onboarding form — no login. New field hires (or their manager)
  * fill this on a phone; submissions land in a pending queue that HR reviews
  * inside the app. Photos post to the API and are stored outside the web root.
- * Branded Noble end-to-end (.portal-noble re-brands every accent-* token).
+ * One form per entity: /onboard is Noble's (the original link), /onboard/ares
+ * is Ares's. The entity decides the branding (.portal-* re-brands every
+ * accent-* token) and which portal's queue the submission lands in.
  */
+
+const BRAND = {
+  noble: { name: 'Noble Diagnostics', team: 'Noble field team', hr: 'Noble HR', footer: 'Noble Diagnostics · Qugen Pathlabs Pvt. Ltd.' },
+  ares: { name: 'Ares Labs', team: 'Ares Labs team', hr: 'Ares Labs HR', footer: 'Ares Labs LLP' },
+}
 
 const DESIGNATIONS = [
   { value: 'TM', label: 'TM — Territory Manager' },
@@ -259,6 +267,10 @@ function DocPhotos({ doc, front, setFront, back, setBack }) {
 
 /* ---------------- Page ---------------- */
 export default function Onboard() {
+  const params = useParams()
+  const entity = BRAND[params.entity] ? params.entity : 'noble'
+  const brand = BRAND[entity]
+  const Mark = ENTITY_MARK[entity]
   const [f, setF] = useState({
     name: '',
     designation: '',
@@ -292,6 +304,7 @@ export default function Onboard() {
     setError(null)
     try {
       const fd = new FormData()
+      fd.append('entity', entity)
       Object.entries(f).forEach(([k, v]) => fd.append(k, v))
       fd.append('aadhaarFront', aadhaarFront)
       fd.append('aadhaarBack', aadhaarBack)
@@ -319,15 +332,15 @@ export default function Onboard() {
   }
 
   return (
-    <div className="portal-noble min-h-dvh bg-paper px-4 py-8 sm:py-12">
+    <div className={cx(`portal-${entity}`, 'min-h-dvh bg-paper px-4 py-8 sm:py-12')}>
       <div className="max-w-xl mx-auto">
-        {/* Brand — Noble Diagnostics */}
+        {/* Brand */}
         <div className="flex items-center gap-3 mb-6">
           <div className="size-10 rounded-[11px] bg-surface-high ring-1 ring-hairline grid place-items-center shrink-0">
-            <NobleMark size={28} />
+            <Mark size={28} />
           </div>
           <div className="leading-tight">
-            <p className="font-display font-bold text-[17px] tracking-tight text-accent-text">Noble Diagnostics</p>
+            <p className="font-display font-bold text-[17px] tracking-tight text-accent-text">{brand.name}</p>
             <p className="text-[10.5px] text-ink-faint uppercase tracking-[0.16em]">Field onboarding</p>
           </div>
         </div>
@@ -340,7 +353,7 @@ export default function Onboard() {
             </motion.div>
             <h1 className="font-display text-[20px] font-bold tracking-tight">Details submitted</h1>
             <p className="text-[13.5px] text-ink-soft mt-2 max-w-sm mx-auto">
-              Thank you — the Noble Diagnostics HR team has received the details and will complete
+              Thank you — the {brand.name} HR team has received the details and will complete
               the onboarding. No further action is needed right now.
             </p>
             <button
@@ -362,7 +375,7 @@ export default function Onboard() {
                 <IdentificationCard size={20} />
               </div>
               <div>
-                <h1 className="font-display text-[21px] font-bold tracking-tight">Join the Noble field team</h1>
+                <h1 className="font-display text-[21px] font-bold tracking-tight">Join the {brand.team}</h1>
                 <p className="text-[12.5px] text-ink-faint">
                   Takes about two minutes. Keep your Aadhaar and PAN cards handy.
                 </p>
@@ -473,14 +486,14 @@ export default function Onboard() {
             </button>
 
             <p className="text-[11px] text-ink-faint text-center mt-3">
-              Your documents are transmitted securely and visible only to Noble HR.
+              Your documents are transmitted securely and visible only to {brand.hr}.
             </p>
           </motion.form>
         )}
         </AnimatePresence>
 
         <p className="text-[11px] text-ink-faint text-center mt-6">
-          Noble Diagnostics · Qugen Pathlabs Pvt. Ltd. · Powered by Stellar Apex People OS
+          {brand.footer} · Powered by Stellar Apex People OS
         </p>
       </div>
     </div>

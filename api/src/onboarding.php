@@ -91,9 +91,88 @@ function get_onboarding_row(string $entityId, ?string $id = null): ?array {
     return $stmt->fetch() ?: null;
 }
 
+/* ---- Emailing the form link ---- */
+
+const ONBOARD_INVITE_HOURLY_LIMIT = 40; // per entity
+
+// Address of this entity's public form. Noble keeps the original /onboard.
+function onboarding_form_url(string $entityId): ?string {
+    $base = app_config()['app_url'];
+    if ($base === '') {
+        // Local dev is same-origin through the Vite proxy: trust a localhost Origin only.
+        $origin = request_header('Origin') ?? '';
+        if (!preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#', $origin)) return null;
+        $base = $origin;
+    }
+    return $base . '/onboard' . ($entityId === 'noble' ? '' : '/' . rawurlencode($entityId));
+}
+
+function onboarding_invite_email(array $entity, string $url, string $name): array {
+    $company = $entity['brand'] ?: $entity['legal_name'];
+    $hello = $name !== '' ? "Hello $name," : 'Hello,';
+    $text = "$hello\n\n"
+        . "Welcome to $company. To complete your joining formalities, please fill in the onboarding form:\n\n"
+        . "$url\n\n"
+        . "It takes about two minutes. Keep your Aadhaar and PAN cards handy, as the form asks for a photo of both sides of each.\n\n"
+        . "This is an automated message from an unattended mailbox. For any question, please contact the HR team.\n\n"
+        . "{$entity['legal_name']}\n";
+    $e = fn (string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    $html = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#1c1c1c;max-width:520px">'
+        . '<p>' . $e($hello) . '</p>'
+        . '<p>Welcome to ' . $e($company) . '. To complete your joining formalities, please fill in the onboarding form.</p>'
+        . '<p style="margin:24px 0"><a href="' . $e($url) . '" style="background:' . ($entity['id'] === 'noble' ? '#3b3897' : '#8f6b1d') . ';color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 20px;border-radius:8px;display:inline-block">Open the onboarding form</a></p>'
+        . '<p>It takes about two minutes. Keep your Aadhaar and PAN cards handy, as the form asks for a photo of both sides of each.</p>'
+        . '<p style="font-size:13px;color:#666666">If the button does not work, copy this link into your browser:<br>' . $e($url) . '</p>'
+        . '<p style="font-size:13px;color:#666666">This is an automated message from an unattended mailbox. For any question, please contact the HR team.</p>'
+        . '<p style="font-size:13px;color:#666666">' . $e($entity['legal_name']) . '</p>'
+        . '</div>';
+    return ["$company: your onboarding form", $text, $html];
+}
+
+// GET  /onboarding/invite            → { enabled, from }
+// POST /onboarding/invite { email, name? } → emails this portal's form link
+function route_onboarding_invite(string $method, array $segments): void {
+    if ($segments !== ['onboarding', 'invite'] || !in_array($method, ['GET', 'POST'], true)) return;
+    require_once __DIR__ . '/mail.php';
+    $user = require_auth();
+    require_role($user, 'super_admin', 'entity_admin', 'entity_hr');
+    $entityId = resolve_entity($user);
+    $m = mail_settings($entityId);
+
+    if ($method === 'GET') json_response(['enabled' => $m !== null, 'from' => $m['from'] ?? null]);
+
+    if (!$m) json_error('Email is not set up for this portal yet', 409);
+    $b = json_body();
+    $email = trim((string) ($b['email'] ?? ''));
+    $name = trim(preg_replace('/\s+/', ' ', (string) ($b['name'] ?? '')));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 190) json_error('Enter a valid email address', 422);
+    if (mb_strlen($name) > 96) json_error('Name is too long', 422);
+
+    $sent = db()->prepare("SELECT COUNT(*) AS n FROM audit_log WHERE entity_id = ? AND action = 'onboard_invite' AND created_at > NOW() - INTERVAL 1 HOUR");
+    $sent->execute([$entityId]);
+    if ((int) $sent->fetch()['n'] >= ONBOARD_INVITE_HOURLY_LIMIT) json_error('Too many invites sent in the last hour. Try again later.', 429);
+
+    $url = onboarding_form_url($entityId);
+    if (!$url) json_error('The app address (APP_URL) is not configured on the server', 500);
+    $stmt = db()->prepare('SELECT * FROM entities WHERE id = ?');
+    $stmt->execute([$entityId]);
+    [$subject, $text, $html] = onboarding_invite_email($stmt->fetch(), $url, $name);
+
+    try {
+        send_mail($entityId, $email, $subject, $text, $html, ['to_name' => $name]);
+    } catch (RuntimeException $e) {
+        error_log('[mail] onboarding invite failed: ' . $e->getMessage());
+        audit((int) $user['id'], $entityId, null, 'onboard_invite_failed', null, ['to' => $email]);
+        json_error('The email could not be sent. Check the address, or try again in a minute.', 502);
+    }
+    audit((int) $user['id'], $entityId, null, 'onboard_invite', null, ['to' => $email, 'name' => $name ?: null]);
+    json_response(['ok' => true, 'to' => $email]);
+}
+
 // PUT /onboarding/:id { status, employeeId? } — mark a submission processed
 // (optionally linking the employee created from it), rejected, or pending again.
 function route_onboarding_actions(string $method, string $path, array $segments): void {
+    route_onboarding_invite($method, $segments);
     if (count($segments) !== 2 || $segments[0] !== 'onboarding' || $method !== 'PUT') return;
     $user = require_auth();
     require_role($user, 'super_admin', 'entity_admin', 'entity_hr');

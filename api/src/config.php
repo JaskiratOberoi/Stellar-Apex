@@ -32,6 +32,22 @@ function app_config(): array {
         // UPLOADS_DIR=/var/uploads; the fallback suits a Hostinger-style layout
         // (one level above public_html/.../api).
         'uploads_dir' => $env('UPLOADS_DIR', __DIR__ . '/../../uploads'),
+        // Public address of the web app, used for links in emails. Falls back
+        // to the first CORS_ORIGIN (the frontend origin in a cross-origin deploy).
+        'app_url'     => rtrim($env('APP_URL', trim(explode(',', (string) $env('CORS_ORIGIN', ''))[0])), '/'),
+        // Outgoing email, one mailbox per entity (see src/mail.php). An entity
+        // is switched on by giving it a password: MAIL_ARES_PASSWORD etc.
+        'mail' => [
+            'ares' => [
+                'host'      => $env('MAIL_ARES_HOST', 'smtp.hostinger.com'),
+                'port'      => (int) $env('MAIL_ARES_PORT', 465),
+                'secure'    => $env('MAIL_ARES_SECURE'), // ssl | tls | none; default follows the port
+                'user'      => $env('MAIL_ARES_USER', 'no-reply@ares-labs.com'),
+                'pass'      => $env('MAIL_ARES_PASSWORD', ''),
+                'from_name' => $env('MAIL_ARES_FROM_NAME', 'Ares Labs'),
+                'reply_to'  => $env('MAIL_ARES_REPLY_TO'),
+            ],
+        ],
     ];
 
     $cfg = array_merge($defaults, $overrides);

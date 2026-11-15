@@ -49,6 +49,13 @@ services:
       UPLOADS_DIR: /var/uploads
       SEED_MODE: demo
       ENC_KEY: ${ENC_KEY:-0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0}
+      # Outgoing email (off unless a password is set in .env). Host, port and
+      # security can be pointed at a local mail catcher for testing.
+      MAIL_ARES_HOST: ${MAIL_ARES_HOST:-smtp.hostinger.com}
+      MAIL_ARES_PORT: ${MAIL_ARES_PORT:-465}
+      MAIL_ARES_SECURE: ${MAIL_ARES_SECURE:-ssl}
+      MAIL_ARES_PASSWORD: ${MAIL_ARES_PASSWORD:-}
+      MAIL_ARES_REPLY_TO: ${MAIL_ARES_REPLY_TO:-}
     ports:
       - "${PHP_HOST_PORT:-8080}:80"
     volumes:
